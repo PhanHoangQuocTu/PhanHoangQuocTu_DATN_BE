@@ -5,7 +5,7 @@ import { SignUpDto } from './sign-up.dto';
 export class CreateAdminAccountDto extends SignUpDto {
     @ApiProperty(
         {
-            example: '123456789',
+            example: 'datnphqt',
         }
     )
     @IsNotEmpty({ message: 'Verification Code is required' })
