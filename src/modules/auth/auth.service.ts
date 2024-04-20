@@ -34,6 +34,8 @@ export class AuthService {
 
     delete user.password;
 
+    delete user.verifyCode;
+
     return user;
   }
 
@@ -50,6 +52,8 @@ export class AuthService {
     if (!matchPassword) throw new BadRequestException('Wrong password');
 
     delete userExists.password
+
+    delete userExists.verifyCode;
 
     return userExists
   }
@@ -74,6 +78,8 @@ export class AuthService {
     await this.usersRepository.save(user);
 
     delete user.password;
+
+    delete user.verifyCode;
 
     return user;
   }
