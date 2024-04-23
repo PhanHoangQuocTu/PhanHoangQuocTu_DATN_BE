@@ -27,6 +27,13 @@ export class UsersController {
   }
 
   @ApiBearerAuth('JWT-auth')
+  @UseGuards(AuthenticationGuard)
+  @Get('isAdmin')
+  async isAdmin(@CurrentUser() currentUser: UserEntity): Promise<{ data: boolean }> {
+    return await this.usersService.isAdmin(currentUser);
+  }
+
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN]))
   @Get()
   async findAll(): Promise<UserEntity[]> {

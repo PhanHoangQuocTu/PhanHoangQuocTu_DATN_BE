@@ -8,6 +8,7 @@ import { IStatusResponse } from 'src/utils/common';
 import { AuthService } from '../auth/auth.service';
 import { generate } from 'generate-password';
 import { MailerService } from '@nestjs-modules/mailer';
+import { Roles } from 'src/utils/common/user-roles.enum';
 
 @Injectable()
 export class UsersService {
@@ -132,5 +133,11 @@ export class UsersService {
     } else {
       throw new BadRequestException('Invalid verification code or user not found');
     }
+  }
+
+  async isAdmin(currentUser: UserEntity): Promise<{data: boolean}> {
+    const isAdmin = currentUser.roles.includes(Roles.ADMIN);
+
+    return {data: isAdmin}
   }
 }
