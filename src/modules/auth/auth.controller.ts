@@ -6,6 +6,7 @@ import { UserEntity } from 'src/entities/user.entity';
 import { ApiTags } from '@nestjs/swagger';
 import { CreateAdminAccountDto } from './dto/create-admin-account';
 import { RefreshTokenDto } from './dto/refresh-token';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -38,4 +39,11 @@ export class AuthController {
   async refreshToken(@Body() refreshTokenDto: RefreshTokenDto): Promise<{ accessToken: string }> {
     return { accessToken: await this.authService.refreshAccessToken(refreshTokenDto) };
   }
+
+  @Post('forgot-password')
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto): Promise<any> {
+    return await this.authService.forgotPassword(forgotPasswordDto.email);
+  }
+
+
 }

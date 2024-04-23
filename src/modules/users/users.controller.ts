@@ -1,5 +1,5 @@
 // import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { Body, Controller, Delete, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 
 // import { UpdateUserDto } from './dto/update-user.dto';
@@ -11,6 +11,7 @@ import { AuthenticationGuard } from 'src/utils/guards/authentication.guard';
 import { AuthorizeGuard } from 'src/utils/guards/authorization.guard';
 import { Roles } from 'src/utils/common/user-roles.enum';
 import { IStatusResponse } from 'src/utils/common';
+import { ActiveAccountDto } from './dto/active-account.dto';
 // import { AuthorizeRoles } from 'src/utils/decorators/authorize-roles.decorator';
 
 @ApiTags('User')
@@ -49,5 +50,33 @@ export class UsersController {
   @Delete(':id')
   async remove(@Param('id') id: string): Promise<IStatusResponse> {
     return await this.usersService.remove(+id);
+  }
+
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.USER, Roles.ADMIN]))
+  @Post('generate-verify-code')
+  async generateVerifyCode(@CurrentUser() currentUser: UserEntity): Promise<{ message: string }> {
+    try {
+      return await this.usersService.generateVerifyCode(currentUser.email);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.USER, Roles.ADMIN]))
+  @Post('activate-user')
+  async activateUser(
+    @Body() activeAccountDto: ActiveAccountDto,
+    @CurrentUser() currentUser: UserEntity
+  ) {
+    try {
+      const isActivated = await this.usersService.activateUser(currentUser?.email, activeAccountDto.verifyCode);
+      if (isActivated) {
+        return { message: 'User has been activated successfully.' };
+      }
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 }

@@ -12,9 +12,12 @@ import { CartModule } from './modules/cart/cart.module';
 import { MetadataModule } from './modules/metadata/metadata.module';
 import { AuthorsModule } from './modules/authors/authors.module';
 import { PublisherModule } from './modules/publisher/publisher.module';
+import { MailModule } from './mail/mail.module';
+
 @Module({
   imports: [
     TypeOrmModule.forRoot(dataSourceOptions),
+    MailModule,
     AuthModule,
     UsersModule,
     CategoriesModule,
@@ -24,7 +27,7 @@ import { PublisherModule } from './modules/publisher/publisher.module';
     CartModule,
     MetadataModule,
     AuthorsModule,
-    PublisherModule
+    PublisherModule,
   ],
   controllers: [],
   providers: [],
@@ -36,3 +39,4 @@ export class AppModule {
       .forRoutes({ path: '*', method: RequestMethod.ALL });
   }
 }
+

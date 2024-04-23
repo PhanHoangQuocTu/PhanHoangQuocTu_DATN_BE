@@ -6,14 +6,16 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UserEntity } from 'src/entities/user.entity';
 import { IStatusResponse } from 'src/utils/common';
 import { AuthService } from '../auth/auth.service';
+import { generate } from 'generate-password';
+import { MailerService } from '@nestjs-modules/mailer';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(UserEntity)
     private usersRepository: Repository<UserEntity>,
-    private readonly authService: AuthService
-
+    private readonly authService: AuthService,
+    private mailerService: MailerService,
   ) { }
 
   async findAll(): Promise<UserEntity[]> {
@@ -85,5 +87,50 @@ export class UsersService {
       status: 200,
       message: 'User deleted successfully',
     };
+  }
+
+  async generateVerifyCode(email: string): Promise<{ message: string }> {
+    const verifyCode = generate({
+      length: 6,
+      numbers: true,
+      lowercase: false,
+      uppercase: false,
+      strict: false,
+      symbols: false,
+      excludeSimilarCharacters: false,
+    });
+
+    const user = await this.usersRepository.findOne({ where: { email } });
+
+    if (user) {
+      await this.usersRepository.update(user.id, { verifyCode });
+    } else {
+      throw new NotFoundException('User not found');
+    }
+
+    await this.mailerService.sendMail({
+      to: email,
+      subject: 'Verify Account',
+      template: './send-verify-code',
+      context: {
+        email: user.email,
+        verifyCode: verifyCode,
+      },
+    });
+
+    return { message: 'Verify code has been sent to your email' };
+  }
+
+  async activateUser(email: string, verifyCode: string): Promise<boolean> {
+    const user = await this.usersRepository.findOne({
+      where: { email, verifyCode },
+    });
+
+    if (user) {
+      await this.usersRepository.update(user.id, { isActice: true, verifyCode: null });
+      return true;
+    } else {
+      throw new BadRequestException('Invalid verification code or user not found');
+    }
   }
 }

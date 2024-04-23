@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { UserEntity } from 'src/entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -9,12 +9,16 @@ import { SignInDto } from './dto/sign-in.dto';
 import { CreateAdminAccountDto } from './dto/create-admin-account';
 import { Roles } from 'src/utils/common/user-roles.enum';
 import { RefreshTokenDto } from './dto/refresh-token';
+import { MailerService } from '@nestjs-modules/mailer';
+import { generate } from 'generate-password';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(UserEntity)
     private usersRepository: Repository<UserEntity>,
+    private mailerService: MailerService,
+
   ) { }
 
   async signUp(signUpDto: SignUpDto): Promise<UserEntity> {
@@ -106,6 +110,40 @@ export class AuthService {
       return this.accessToken(payload as any);
     } catch (e) {
       throw new BadRequestException('Invalid token');
+    }
+  }
+
+  async forgotPassword(email: string): Promise<any> {
+    const user = await this.usersRepository.findOne({ where: { email } });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const newPassword = generate({
+      length: 16,
+      numbers: true,
+      symbols: true,
+      lowercase: true,
+      uppercase: true,
+      strict: true,
+    });
+    const hashedPassword = await hash(newPassword, 12);
+
+    await this.usersRepository.update(user.id, { password: hashedPassword });
+
+    await this.mailerService.sendMail({
+      to: email,
+      subject: 'Reset password',
+      template: './forgot-password',
+      context: {
+        email: user.email,
+        password: newPassword,
+      },
+    });
+
+    return {
+      message: 'Check your email to reset your password'
     }
   }
 }
