@@ -1,8 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
 import { ReviewsService } from './reviews.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { UpdateReviewDto } from './dto/update-review.dto';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { AuthenticationGuard } from 'src/utils/guards/authentication.guard';
 import { CurrentUser } from 'src/utils/decorators/current-user.decorator';
 import { UserEntity } from 'src/entities/user.entity';
@@ -10,6 +10,7 @@ import { ReviewEntity } from 'src/entities/review.entity';
 import { AuthorizeGuard } from 'src/utils/guards/authorization.guard';
 import { Roles } from 'src/utils/common/user-roles.enum';
 import { IStatusResponse } from 'src/utils/common';
+import { FindAllCategoriesParamsDto } from '../categories/dto/find-all-categories-params.dto';
 
 @ApiTags('Review')
 @Controller('reviews')
@@ -36,9 +37,14 @@ export class ReviewsController {
     return await this.reviewsService.findAll();
   }
 
+  @ApiQuery({ name: 'limit', type: Number, required: false },)
+  @ApiQuery({ name: 'page', type: Number, required: false })
   @Get(':productId')
-  async findAllByProduct(@Param('productId') productId: number): Promise<ReviewEntity[]> {
-    return await this.reviewsService.findAllByProduct(productId);
+  async findAllByProduct(
+    @Param('productId') productId: number,
+    @Query() query: FindAllCategoriesParamsDto,
+  ): Promise<{ reviews: ReviewEntity[]; meta: { limit: number; totalItems: number; totalPages: number; currentPage: number; } }> {
+    return await this.reviewsService.findAllByProduct(productId, query);
   }
 
   @ApiBearerAuth('JWT-auth')
