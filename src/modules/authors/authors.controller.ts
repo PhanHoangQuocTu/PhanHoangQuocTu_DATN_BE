@@ -27,7 +27,6 @@ export class AuthorsController {
   @ApiQuery({ name: 'search', type: String, required: false },)
   @ApiQuery({ name: 'limit', type: Number, required: false },)
   @ApiQuery({ name: 'page', type: Number, required: false })
-
   @Get()
   async findAll(
     @Query() query: FindAllAuthorsParamsDto,

@@ -1,7 +1,7 @@
-import { Controller, Get, Post, Body, Param, Delete, UseGuards, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, UseGuards, Put, Query } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { AuthenticationGuard } from 'src/utils/guards/authentication.guard';
 import { AuthorizeGuard } from 'src/utils/guards/authorization.guard';
 import { Roles } from 'src/utils/common/user-roles.enum';
@@ -9,6 +9,7 @@ import { CurrentUser } from 'src/utils/decorators/current-user.decorator';
 import { UserEntity } from 'src/entities/user.entity';
 import { OrderEntity } from 'src/entities/order.entity';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { FindAllOrdersParamsDto } from './dto/find-all-orders-params.dto';
 
 @ApiTags('Order')
 @Controller('orders')
@@ -25,9 +26,12 @@ export class OrdersController {
   @ApiBearerAuth('JWT-auth')
   @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN]))
   @Get()
-  async findAll(): Promise<OrderEntity[]> {
-    return await this.ordersService.findAll();
-  }
+  @ApiQuery({ name: 'search', type: String, required: false },)
+  @ApiQuery({ name: 'limit', type: Number, required: false },)
+  @ApiQuery({ name: 'page', type: Number, required: false })
+async findAll(@Query() query: FindAllOrdersParamsDto): Promise<{ orders: OrderEntity[]; meta: { limit: number; totalItems: number; totalPages: number; currentPage: number; } }> {
+  return await this.ordersService.findAll(query);
+}
 
   @ApiBearerAuth('JWT-auth')
   @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN, Roles.USER]))

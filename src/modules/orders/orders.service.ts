@@ -10,6 +10,7 @@ import { ProductEntity } from 'src/entities/product.entity';
 import { ProductsService } from '../products/products.service';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { OrderStatus } from 'src/utils/common/order-status.enum';
+import { FindAllOrdersParamsDto } from './dto/find-all-orders-params.dto';
 
 @Injectable()
 export class OrdersService {
@@ -64,14 +65,43 @@ export class OrdersService {
     return await this.findOne(orderTbl.id);
   }
 
-  async findAll(): Promise<OrderEntity[]> {
-    return await this.orderRepository.find({
-      relations: {
-        shippingAddress: true,
-        user: true,
-        products: { product: true }
+  async findAll(query: FindAllOrdersParamsDto): Promise<{ orders: OrderEntity[]; meta: { limit: number; totalItems: number; totalPages: number; currentPage: number; } }> {
+    const page = query?.page > 0 ? query.page : 1; // Đảm bảo rằng số trang ít nhất là 1
+    const limit = query?.limit > 0 ? query.limit : 10; // Đặt một giới hạn mặc định nếu không có hoặc không hợp lệ
+    const offset = (page - 1) * limit; // Tính toán offset
+
+    const queryBuilder = this.orderRepository.createQueryBuilder('order')
+      .leftJoinAndSelect('order.shippingAddress', 'shippingAddress')
+      .leftJoinAndSelect('order.user', 'user')
+      .leftJoinAndSelect('order.products', 'products')
+      .leftJoinAndSelect('products.product', 'product');
+
+    if (query?.search) {
+      const isSearchNumeric = !isNaN(Number(query.search));
+      if (isSearchNumeric) {
+        queryBuilder.andWhere('CAST(order.id AS text) LIKE :search', { search: `%${query.search}%` });
+      } else {
+        const searchQuery = `%${query.search.toLowerCase()}%`;
+        queryBuilder.andWhere('LOWER(user.email) LIKE :search', { search: searchQuery });
       }
-    });
+    }
+
+    queryBuilder.skip(offset).take(limit);
+
+    const [orders, totalItems] = await queryBuilder.getManyAndCount();
+
+    const totalPages = Math.ceil(totalItems / limit);
+    const currentPage = page;
+
+    return {
+      orders,
+      meta: {
+        limit,
+        totalItems,
+        totalPages,
+        currentPage,
+      },
+    };
   }
 
   async findOne(id: number): Promise<OrderEntity> {
