@@ -5,6 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { AuthorEntity } from 'src/entities/author.entity';
 import { Repository } from 'typeorm';
 import { UserEntity } from 'src/entities/user.entity';
+import { FindAllAuthorsParamsDto } from './dto/find-all-authors-params.dto';
 
 @Injectable()
 export class AuthorsService {
@@ -26,8 +27,34 @@ export class AuthorsService {
     return await this.authorRepository.save(author);
   }
 
-  async findAll(): Promise<AuthorEntity[]> {
-    return await this.authorRepository.find();
+  async findAll(query: FindAllAuthorsParamsDto): Promise<{ authors: AuthorEntity[]; meta: { limit: number; totalItems: number; totalPages: number; currentPage: number; } }> {
+    const page = query?.page > 0 ? query.page : 1; // Đảm bảo rằng số trang ít nhất là 1
+    const limit = query?.limit > 0 ? query.limit : 10; // Đặt một giới hạn mặc định nếu không có hoặc không hợp lệ
+    const offset = (page - 1) * limit; // Tính toán offset
+
+    const queryBuilder = this.authorRepository.createQueryBuilder('author');
+
+    if (query?.search) {
+      const searchQuery = `%${query.search.toLowerCase()}%`;
+      queryBuilder.where('LOWER(author.name) LIKE :search', { search: searchQuery });
+    }
+
+    queryBuilder.skip(offset).take(limit);
+
+    const [authors, totalItems] = await queryBuilder.getManyAndCount();
+
+    const totalPages = Math.ceil(totalItems / limit);
+    const currentPage = page;
+
+    return {
+      authors,
+      meta: {
+        limit,
+        totalItems,
+        totalPages,
+        currentPage,
+      },
+    };
   }
 
   async findOne(id: number): Promise<AuthorEntity> {
