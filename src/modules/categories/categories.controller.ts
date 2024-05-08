@@ -1,8 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from 'src/utils/decorators/current-user.decorator';
 import { UserEntity } from 'src/entities/user.entity';
 import { AuthenticationGuard } from 'src/utils/guards/authentication.guard';
@@ -10,6 +10,7 @@ import { AuthorizeGuard } from 'src/utils/guards/authorization.guard';
 import { Roles } from 'src/utils/common/user-roles.enum';
 import { CategoryEntity } from 'src/entities/category.entity';
 import { IStatusResponse } from 'src/utils/common';
+import { FindAllCategoriesParamsDto } from './dto/find-all-categories-params.dto';
 
 @ApiTags('Category')
 @Controller('category')
@@ -23,9 +24,14 @@ export class CategoriesController {
     return await this.categoriesService.create(createCategoryDto, currentUser);
   }
 
+  @ApiQuery({ name: 'search', type: String, required: false },)
+  @ApiQuery({ name: 'limit', type: Number, required: false },)
+  @ApiQuery({ name: 'page', type: Number, required: false })
   @Get()
-  async findAll(): Promise<CategoryEntity[]> {
-    return await this.categoriesService.findAll();
+  async findAll(
+    @Query() query: FindAllCategoriesParamsDto,
+  ): Promise<{ categories: CategoryEntity[]; meta: { limit: number; totalItems: number; totalPages: number; currentPage: number; } }> {
+    return await this.categoriesService.findAll(query);
   }
 
   @Get(':id')

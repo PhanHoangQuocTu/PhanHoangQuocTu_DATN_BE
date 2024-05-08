@@ -6,6 +6,7 @@ import { CategoryEntity } from 'src/entities/category.entity';
 import { Repository } from 'typeorm';
 import { UserEntity } from 'src/entities/user.entity';
 import { IStatusResponse } from 'src/utils/common';
+import { FindAllCategoriesParamsDto } from './dto/find-all-categories-params.dto';
 
 @Injectable()
 export class CategoriesService {
@@ -22,8 +23,34 @@ export class CategoriesService {
     return await this.categoriesRepository.save(category);
   }
 
-  async findAll(): Promise<CategoryEntity[]> {
-    return await this.categoriesRepository.find();
+  async findAll(query: FindAllCategoriesParamsDto): Promise<{ categories: CategoryEntity[]; meta: { limit: number; totalItems: number; totalPages: number; currentPage: number; } }> {
+    const page = query?.page > 0 ? query.page : 1;
+    const limit = query?.limit > 0 ? query.limit : 10;
+    const offset = (page - 1) * limit;
+
+    const queryBuilder = this.categoriesRepository.createQueryBuilder('category');
+
+    if (query?.search) {
+      const searchQuery = `%${query.search.toLowerCase()}%`;
+      queryBuilder.where('LOWER(category.title) LIKE :search', { search: searchQuery });
+    }
+
+    queryBuilder.skip(offset).take(limit);
+
+    const [categories, totalItems] = await queryBuilder.getManyAndCount();
+
+    const totalPages = Math.ceil(totalItems / limit);
+    const currentPage = page;
+
+    return {
+      categories,
+      meta: {
+        limit,
+        totalItems,
+        totalPages,
+        currentPage,
+      },
+    };
   }
 
   async findOne(id: number): Promise<CategoryEntity> {
