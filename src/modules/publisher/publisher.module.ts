@@ -9,6 +9,5 @@ import { PublisherEntity } from 'src/entities/publisher.entity';
   controllers: [PublisherController],
   providers: [PublisherService],
   exports: [PublisherService]
-
 })
 export class PublisherModule { }

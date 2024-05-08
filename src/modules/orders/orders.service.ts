@@ -11,6 +11,8 @@ import { ProductsService } from '../products/products.service';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { OrderStatus } from 'src/utils/common/order-status.enum';
 import { FindAllOrdersParamsDto } from './dto/find-all-orders-params.dto';
+import { CartService } from '../cart/cart.service';
+import { CartEntity } from 'src/entities/cart.entity';
 
 @Injectable()
 export class OrdersService {
@@ -21,7 +23,13 @@ export class OrdersService {
     @InjectRepository(OrdersProductsEntity)
     private readonly ordersProductRepository: Repository<OrdersProductsEntity>,
 
-    private readonly productService: ProductsService
+    @InjectRepository(OrdersProductsEntity)
+    private readonly cartRepository: Repository<CartEntity>,
+
+    private readonly productService: ProductsService,
+
+    private readonly cartService: CartService
+
   ) { }
 
   async create(createOrderDto: CreateOrderDto, currentUser: UserEntity): Promise<OrderEntity> {
@@ -62,13 +70,19 @@ export class OrdersService {
       .values(ordersProductsEntity)
       .execute()
 
+    const cart = await this.cartService.getCartByUserId(currentUser.id);
+
+    if (cart) {
+      await this.cartService.updateIsOrderd(cart.cart.id);
+    }
+
     return await this.findOne(orderTbl.id);
   }
 
   async findAll(query: FindAllOrdersParamsDto): Promise<{ orders: OrderEntity[]; meta: { limit: number; totalItems: number; totalPages: number; currentPage: number; } }> {
-    const page = query?.page > 0 ? query.page : 1; // Đảm bảo rằng số trang ít nhất là 1
-    const limit = query?.limit > 0 ? query.limit : 10; // Đặt một giới hạn mặc định nếu không có hoặc không hợp lệ
-    const offset = (page - 1) * limit; // Tính toán offset
+    const page = query?.page > 0 ? query.page : 1;
+    const limit = query?.limit > 0 ? query.limit : 10;
+    const offset = (page - 1) * limit;
 
     const queryBuilder = this.orderRepository.createQueryBuilder('order')
       .leftJoinAndSelect('order.shippingAddress', 'shippingAddress')

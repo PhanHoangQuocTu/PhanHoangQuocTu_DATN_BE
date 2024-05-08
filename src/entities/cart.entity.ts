@@ -1,4 +1,4 @@
-import { CreateDateColumn, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, Timestamp, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, Timestamp, UpdateDateColumn } from "typeorm";
 import { UserEntity } from "./user.entity";
 import { CartItemEntity } from "./cart-item.entity";
 
@@ -12,6 +12,9 @@ export class CartEntity {
 
     @OneToMany(() => CartItemEntity, (item) => item.cart, { cascade: true })
     items: CartItemEntity[];
+
+    @Column({ default: false })
+    isOrdered: boolean;
 
     @CreateDateColumn()
     createdAt: Timestamp;

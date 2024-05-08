@@ -28,13 +28,14 @@ export class CartService {
 
     let cart = await this.cartRepository.findOne({
       where: {
-        user: {
-          id: userId
-        }
+        user: { id: userId },
+        isOrdered: false
       },
       relations: {
         items: {
-          product: true
+          product: {
+            category: true,
+          },
         }
       },
     });
@@ -64,6 +65,13 @@ export class CartService {
     return { message: 'add to cart success', cart: this.stripCartData(cart) };
   }
 
+  async updateIsOrderd(cartId: number): Promise<{ message: string }> {
+    const cart = await this.cartRepository.findOne({ where: { id: cartId } });
+    cart.isOrdered = true;
+    await this.cartRepository.save(cart);
+    return { message: 'update cart success' };
+  }
+
   async removeCartItem(cartItemId: number): Promise<{ message: string }> {
     await this.cartItemRepository.delete(cartItemId);
     return { message: 'remove cart item success' };
@@ -77,9 +85,8 @@ export class CartService {
 
     const cart = await this.cartRepository.findOne({
       where: {
-        user: {
-          id: userId
-        }
+        user: { id: userId },
+        isOrdered: false
       },
       relations: {
         items: {
@@ -100,6 +107,7 @@ export class CartService {
   private async createCart(user: UserEntity): Promise<CartEntity> {
     const cart = new CartEntity();
     cart.user = user;
+    cart.items = [];
     return await this.cartRepository.save(cart);
   }
 
@@ -108,6 +116,7 @@ export class CartService {
       id: cart?.id,
       createdAt: cart?.createdAt,
       updatedAt: cart?.updatedAt,
+      isOrdered: cart?.isOrdered,
       items: cart?.items?.map(item => ({
         id: item?.id,
         quantity: item?.quantity,
