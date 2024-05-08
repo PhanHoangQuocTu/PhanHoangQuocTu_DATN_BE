@@ -1,14 +1,15 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
 import { PublisherService } from './publisher.service';
 import { CreatePublisherDto } from './dto/create-publisher.dto';
 import { UpdatePublisherDto } from './dto/update-publisher.dto';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Roles } from 'src/utils/common/user-roles.enum';
 import { AuthorizeGuard } from 'src/utils/guards/authorization.guard';
 import { AuthenticationGuard } from 'src/utils/guards/authentication.guard';
 import { UserEntity } from 'src/entities/user.entity';
 import { CurrentUser } from 'src/utils/decorators/current-user.decorator';
 import { PublisherEntity } from 'src/entities/publisher.entity';
+import { FindAllPublisherParamsDto } from './dto/find-all-publisher-params.dto';
 
 @ApiTags('Publisher')
 @Controller('publisher')
@@ -22,9 +23,14 @@ export class PublisherController {
     return await this.publisherService.create(createPublisherDto, currentUser);
   }
 
+  @ApiQuery({ name: 'search', type: String, required: false },)
+  @ApiQuery({ name: 'limit', type: Number, required: false },)
+  @ApiQuery({ name: 'page', type: Number, required: false })
   @Get()
-  async findAll(): Promise<PublisherEntity[]> {
-    return await this.publisherService.findAll();
+  async findAll(
+    @Query() query: FindAllPublisherParamsDto,
+  ): Promise<{ publishers: PublisherEntity[]; meta: { limit: number; totalItems: number; totalPages: number; currentPage: number; } }> {
+    return await this.publisherService.findAll(query);
   }
 
   @Get(':id')
