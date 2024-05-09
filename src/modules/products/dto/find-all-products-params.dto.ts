@@ -2,6 +2,10 @@ export type FindAllProductsParamsDto = {
     search: string;
 
     categoryId: number;
+    
+    authorId: number;
+
+    publisherId: number;
 
     minPrice: number;
 

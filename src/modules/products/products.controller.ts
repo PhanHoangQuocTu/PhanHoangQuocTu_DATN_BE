@@ -10,8 +10,6 @@ import { CurrentUser } from 'src/utils/decorators/current-user.decorator';
 import { UserEntity } from 'src/entities/user.entity';
 import { ProductEntity } from 'src/entities/product.entity';
 import { IStatusResponse } from 'src/utils/common';
-import { SerializeIncludes } from 'src/utils/interceptors/serialize.interceptor';
-import { ProductsDto } from './dto/products.dto';
 import { FindAllProductsParamsDto } from './dto/find-all-products-params.dto';
 
 @ApiTags('Product')
@@ -26,12 +24,13 @@ export class ProductsController {
     return await this.productsService.create(createProductDto, currentUser);
   }
 
-  @SerializeIncludes(ProductsDto)
   @Get()
   @ApiQuery({ name: 'limit', type: Number, required: false },)
   @ApiQuery({ name: 'page', type: Number, required: false })
   @ApiQuery({ name: 'search', type: String, required: false })
   @ApiQuery({ name: 'categoryId', type: Number, required: false })
+  @ApiQuery({ name: 'authorId', type: Number, required: false })
+  @ApiQuery({ name: 'publisherId', type: Number, required: false })
   @ApiQuery({ name: 'minPrice', type: Number, required: false })
   @ApiQuery({ name: 'maxPrice', type: Number, required: false })
   @ApiQuery({ name: 'minRating', type: Number, required: false })

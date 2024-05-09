@@ -50,22 +50,28 @@ export class ProductsService {
     const limit: number = Number(query.limit) || 999999999;
     const currentPage: number = Number(query.page) || 1;
 
-
     const queryBuilder = dataSource
       .getRepository(ProductEntity)
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.category', 'category')
+      .leftJoinAndSelect('product.author', 'author')
+      .leftJoinAndSelect('product.publisher', 'publisher')
       .leftJoin('product.reviews', 'review')
       .addSelect('COUNT(review.id)', 'reviewCount')
       .addSelect('AVG(review.ratings)::numeric(10,2)', 'avgRating')
-      .groupBy('product.id, category.id');
-
-    const totalProducts = await queryBuilder.getCount();
-    const totalPage = Math.ceil(totalProducts / limit);
+      .groupBy('product.id, category.id, author.id, publisher.id');
 
     if (query.search) {
-      const search = query.search;
-      queryBuilder.andWhere('product.title like :title', { title: `%${search}%` });
+      const search = query.search.toLowerCase();
+      queryBuilder.andWhere('LOWER(product.title) ILIKE :title', { title: `%${search}%` });
+    }
+
+    if (query.authorId) {
+      queryBuilder.andWhere('author.id = :authorId', { authorId: query.authorId });
+    }
+
+    if (query.publisherId) {
+      queryBuilder.andWhere('publisher.id = :publisherId', { publisherId: query.publisherId });
     }
 
     if (query.categoryId) {
@@ -94,7 +100,10 @@ export class ProductsService {
       queryBuilder.offset((query.page - 1) * query.limit);
     }
 
-    const products = await queryBuilder.getRawMany();
+    const products = await queryBuilder.getMany();
+
+    const totalProducts = await queryBuilder.getCount();
+    const totalPage = Math.ceil(totalProducts / limit);
 
     return { products, meta: { limit, totalProducts, totalPage, currentPage } };
   }
