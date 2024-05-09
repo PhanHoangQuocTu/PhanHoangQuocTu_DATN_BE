@@ -1,9 +1,9 @@
 // import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 
 // import { UpdateUserDto } from './dto/update-user.dto';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserEntity } from 'src/entities/user.entity';
 import { CurrentUser } from 'src/utils/decorators/current-user.decorator';
@@ -12,6 +12,7 @@ import { AuthorizeGuard } from 'src/utils/guards/authorization.guard';
 import { Roles } from 'src/utils/common/user-roles.enum';
 import { IStatusResponse } from 'src/utils/common';
 import { ActiveAccountDto } from './dto/active-account.dto';
+import { FindAllUserParamsDto } from './dto/find-all-user-params.dto';
 // import { AuthorizeRoles } from 'src/utils/decorators/authorize-roles.decorator';
 
 @ApiTags('User')
@@ -36,8 +37,14 @@ export class UsersController {
   @ApiBearerAuth('JWT-auth')
   @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN]))
   @Get()
-  async findAll(): Promise<UserEntity[]> {
-    return await this.usersService.findAll();
+  @ApiQuery({ name: 'search', type: String, required: false },)
+  @ApiQuery({ name: 'limit', type: Number, required: false },)
+  @ApiQuery({ name: 'page', type: Number, required: false })
+  @ApiQuery({ name: 'isActive', type: Boolean, required: false })
+  async findAll(
+    @Query() query: FindAllUserParamsDto
+  ): Promise<{ users: UserEntity[]; meta: { limit: number; totalItems: number; totalPages: number; currentPage: number; } }> {
+    return await this.usersService.findAll(query);
   }
 
   @Get(':id')

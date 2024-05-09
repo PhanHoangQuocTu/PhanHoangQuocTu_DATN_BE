@@ -9,6 +9,7 @@ import { AuthService } from '../auth/auth.service';
 import { generate } from 'generate-password';
 import { MailerService } from '@nestjs-modules/mailer';
 import { Roles } from 'src/utils/common/user-roles.enum';
+import { FindAllUserParamsDto } from './dto/find-all-user-params.dto';
 
 @Injectable()
 export class UsersService {
@@ -19,8 +20,38 @@ export class UsersService {
     private mailerService: MailerService,
   ) { }
 
-  async findAll(): Promise<UserEntity[]> {
-    return await this.usersRepository.find();
+  async findAll(query: FindAllUserParamsDto): Promise<{ users: UserEntity[]; meta: { limit: number; totalItems: number; totalPages: number; currentPage: number; } }> {
+    const page = query.page > 0 ? query.page : 1;
+    const limit = query.limit > 0 ? query.limit : 10;
+    const offset = (page - 1) * limit;
+
+    const queryBuilder = this.usersRepository.createQueryBuilder('user');
+
+    if (query.search) {
+      const searchQuery = `%${query.search.toLowerCase()}%`;
+      queryBuilder.where('(LOWER(user.firstName) LIKE :search OR LOWER(user.lastName) LIKE :search OR LOWER(user.email) LIKE :search)', { search: searchQuery });
+    }
+
+    if (query.isActive !== undefined) {
+      queryBuilder.andWhere('user.isActice = :isActive', { isActive: query.isActive });
+    }
+
+    queryBuilder.skip(offset).take(limit);
+
+    const [users, totalItems] = await queryBuilder.getManyAndCount();
+
+    const totalPages = Math.ceil(totalItems / limit);
+    const currentPage = page;
+
+    return {
+      users,
+      meta: {
+        limit,
+        totalItems,
+        totalPages,
+        currentPage,
+      },
+    };
   }
 
   async findOne(id: number): Promise<UserEntity> {
@@ -135,9 +166,9 @@ export class UsersService {
     }
   }
 
-  async isAdmin(currentUser: UserEntity): Promise<{data: boolean}> {
+  async isAdmin(currentUser: UserEntity): Promise<{ data: boolean }> {
     const isAdmin = currentUser.roles.includes(Roles.ADMIN);
 
-    return {data: isAdmin}
+    return { data: isAdmin }
   }
 }
