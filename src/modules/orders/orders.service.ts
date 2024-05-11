@@ -13,7 +13,10 @@ import { OrderStatus } from 'src/utils/common/order-status.enum';
 import { FindAllOrdersParamsDto } from './dto/find-all-orders-params.dto';
 import { CartService } from '../cart/cart.service';
 import { CartEntity } from 'src/entities/cart.entity';
-
+import * as moment from 'moment';
+import { env } from 'src/types/const';
+import * as qs from 'qs';
+import * as crypto from 'crypto';
 @Injectable()
 export class OrdersService {
   constructor(
@@ -201,4 +204,91 @@ export class OrdersService {
       await this.productService.updateStock(orderProduct.product.id, orderProduct.product_quantity, status);
     }
   }
+
+  sortObject(obj: any) {
+    const sorted = {};
+    const str = [];
+    let key;
+    for (key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        str.push(encodeURIComponent(key));
+      }
+    }
+    str.sort();
+    for (key = 0; key < str.length; key++) {
+      sorted[str[key]] = encodeURIComponent(obj[str[key]]).replace(/%20/g, "+");
+    }
+    return sorted;
+  }
+
+
+  async createPaymentUrl(): Promise<{ url: string }> {
+    process.env.TZ = "Asia/Ho_Chi_Minh";
+
+    const date = new Date();
+    const createDate = moment(date).format("YYYYMMDDHHmmss");
+
+    const ipAddr = "127.0.0.1";
+    const tmnCode = env.VNPAY_TMN_CODE;
+    const secretKey = env.VNPAY_HASH_SECRET;
+    let vnpUrl = env.VNPAY_URL;
+    const returnUrl = env.VNPAY_RETURN_URL;
+    const orderId = moment(date).format("DDHHmmss");
+
+    const currCode = "VND";
+    let vnp_Params = {};
+    vnp_Params["vnp_Version"] = "2.1.0";
+    vnp_Params["vnp_Command"] = "pay";
+    vnp_Params["vnp_TmnCode"] = tmnCode;
+    vnp_Params["vnp_Locale"] = "vn";
+    vnp_Params["vnp_CurrCode"] = currCode;
+    vnp_Params["vnp_TxnRef"] = orderId;
+    vnp_Params["vnp_OrderInfo"] = "Thanh toan cho ma GD:" + orderId;
+    vnp_Params["vnp_OrderType"] = "other";
+    vnp_Params["vnp_Amount"] = 100000 * 100;
+    vnp_Params["vnp_ReturnUrl"] = returnUrl;
+    vnp_Params["vnp_IpAddr"] = ipAddr;
+    vnp_Params["vnp_CreateDate"] = createDate;
+    vnp_Params["vnp_BankCode"] = "VNBANK";
+
+    vnp_Params = this.sortObject(vnp_Params);
+
+    const signData = qs.stringify(vnp_Params, { encode: false });
+    const hmac = crypto.createHmac("sha512", secretKey);
+    const signed = hmac.update(new Buffer(signData, "utf-8")).digest("hex");
+    vnp_Params["vnp_SecureHash"] = signed;
+    vnpUrl += "?" + qs.stringify(vnp_Params, { encode: false });
+
+    return {
+      url: vnpUrl,
+    }
+  };
+
+  async verifyReturn(vnp_Params: any) {
+
+    const secureHash = vnp_Params["vnp_SecureHash"];
+
+    delete vnp_Params["vnp_SecureHash"];
+    delete vnp_Params["vnp_SecureHashType"];
+
+    vnp_Params = this.sortObject(vnp_Params);
+
+    const secretKey = env.VNPAY_HASH_SECRET;
+
+    const signData = qs.stringify(vnp_Params, { encode: false });
+    const hmac = crypto.createHmac("sha512", secretKey);
+    const signed = hmac.update(new Buffer(signData, "utf-8")).digest("hex");
+
+    if (secureHash === signed) {
+      return {
+        message: "success",
+      }
+    } else {
+      return {
+        message: "fail",
+      }
+    }
+  };
+
+
 }

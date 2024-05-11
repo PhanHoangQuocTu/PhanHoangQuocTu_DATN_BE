@@ -29,9 +29,9 @@ export class OrdersController {
   @ApiQuery({ name: 'search', type: String, required: false },)
   @ApiQuery({ name: 'limit', type: Number, required: false },)
   @ApiQuery({ name: 'page', type: Number, required: false })
-async findAll(@Query() query: FindAllOrdersParamsDto): Promise<{ orders: OrderEntity[]; meta: { limit: number; totalItems: number; totalPages: number; currentPage: number; } }> {
-  return await this.ordersService.findAll(query);
-}
+  async findAll(@Query() query: FindAllOrdersParamsDto): Promise<{ orders: OrderEntity[]; meta: { limit: number; totalItems: number; totalPages: number; currentPage: number; } }> {
+    return await this.ordersService.findAll(query);
+  }
 
   @ApiBearerAuth('JWT-auth')
   @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN, Roles.USER]))
@@ -63,5 +63,17 @@ async findAll(@Query() query: FindAllOrdersParamsDto): Promise<{ orders: OrderEn
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.ordersService.remove(+id);
+  }
+
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN, Roles.USER]))
+  @Post("vnpay_create_payment_url")
+  async createVNPAYPaymentUrl(): Promise<{ url: string }> {
+    return await this.ordersService.createPaymentUrl();
+  }
+
+  @Get('return_url')
+  returnUrl(@Param() vnp_Params: any) {
+    return this.ordersService.verifyReturn(vnp_Params);
   }
 }
