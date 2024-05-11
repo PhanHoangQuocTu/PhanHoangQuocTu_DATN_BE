@@ -25,7 +25,7 @@ export class UsersService {
     const limit = query.limit > 0 ? query.limit : 10;
     const offset = (page - 1) * limit;
 
-    const queryBuilder = this.usersRepository.createQueryBuilder('user');
+    const queryBuilder = this.usersRepository.createQueryBuilder('user').where('user.deletedAt IS NULL');
 
     if (query.search) {
       const searchQuery = `%${query.search.toLowerCase()}%`;
@@ -113,7 +113,8 @@ export class UsersService {
   async remove(id: number): Promise<IStatusResponse> {
     const user = await this.findOne(id);
 
-    await this.usersRepository.remove(user)
+    user.deletedAt = new Date();
+    await this.usersRepository.save(user);
 
     return {
       status: 200,
