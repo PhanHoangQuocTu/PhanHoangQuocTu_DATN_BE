@@ -32,7 +32,7 @@ export class UserEntity {
     gender: string;
 
     @Column({ nullable: true })
-    DateOfBirth: Date
+    dateOfBirth: Date;
 
     @Column({ select: false })
     password: string;

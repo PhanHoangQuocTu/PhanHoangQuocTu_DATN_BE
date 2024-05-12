@@ -74,6 +74,10 @@ export class UsersService {
     };
 
     const updateUser = async () => {
+      user.dateOfBirth = updateUserDto.dateOfBirth ?? user.dateOfBirth;
+      user.gender = updateUserDto.gender ?? user.gender;
+      user.address = updateUserDto.address ?? user.address;
+
       Object.assign(user, updateUserDto);
 
       return await this.usersRepository.save(user);
@@ -106,6 +110,8 @@ export class UsersService {
 
       return await updateUser();
     }
+
+    await updateUser();
 
     return user;
   }
