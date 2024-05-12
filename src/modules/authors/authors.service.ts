@@ -3,7 +3,7 @@ import { CreateAuthorDto } from './dto/create-author.dto';
 import { UpdateAuthorDto } from './dto/update-author.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AuthorEntity } from 'src/entities/author.entity';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { UserEntity } from 'src/entities/user.entity';
 import { FindAllAuthorsParamsDto } from './dto/find-all-authors-params.dto';
 
@@ -32,11 +32,11 @@ export class AuthorsService {
     const limit = query?.limit > 0 ? query.limit : 10; // Đặt một giới hạn mặc định nếu không có hoặc không hợp lệ
     const offset = (page - 1) * limit; // Tính toán offset
 
-    const queryBuilder = this.authorRepository.createQueryBuilder('author');
+    const queryBuilder = this.authorRepository.createQueryBuilder('author').where('author.deletedAt IS NULL');
 
     if (query?.search) {
       const searchQuery = `%${query.search.toLowerCase()}%`;
-      queryBuilder.where('LOWER(author.name) LIKE :search', { search: searchQuery });
+      queryBuilder.andWhere('LOWER(author.name) LIKE :search', { search: searchQuery });
     }
 
     queryBuilder.skip(offset).take(limit);
@@ -86,7 +86,18 @@ export class AuthorsService {
     return await this.authorRepository.save(author);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} author`;
+  async remove(id: number): Promise<{ status: number; message: string; }> {
+    const author = await this.authorRepository.findOne({
+      where: { id, deletedAt: IsNull() },
+    });
+
+    if (!author) throw new NotFoundException('Author not found or already deleted');
+
+    await this.authorRepository.softDelete(id); // Perform a soft delete
+
+    return {
+      status: 200,
+      message: 'Author deleted successfully',
+    };
   }
 }
