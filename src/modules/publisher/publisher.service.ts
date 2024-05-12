@@ -22,28 +22,24 @@ export class PublisherService {
   }
 
   async findAll(query: FindAllPublisherParamsDto): Promise<{ publishers: PublisherEntity[]; meta: { limit: number; totalItems: number; totalPages: number; currentPage: number; } }> {
-    const page = query?.page > 0 ? query.page : 1; // Đảm bảo rằng số trang ít nhất là 1
-    const limit = query?.limit > 0 ? query.limit : 10; // Đặt một giới hạn mặc định nếu không có hoặc không hợp lệ
-    const offset = (page - 1) * limit; // Tính toán offset
-    
-    // Tạo một QueryBuilder cho PublisherEntity
-    const queryBuilder = this.publisherRepository.createQueryBuilder('publisher');
-    
-    // Nếu có tham số tìm kiếm, thêm điều kiện tìm kiếm không phân biệt chữ hoa chữ thường vào truy vấn
+    const page = query?.page > 0 ? query.page : 1;
+    const limit = query?.limit > 0 ? query.limit : 10;
+    const offset = (page - 1) * limit;
+
+    const queryBuilder = this.publisherRepository.createQueryBuilder('publisher').where('publisher.deletedAt IS NULL');
+
     if (query?.search) {
       const searchQuery = `%${query.search.toLowerCase()}%`;
       queryBuilder.where('LOWER(publisher.name) LIKE :search', { search: searchQuery });
     }
-    
-    // Thêm phân trang vào truy vấn
+
     queryBuilder.skip(offset).take(limit);
-    
-    // Thực hiện truy vấn để lấy kết quả và tổng số lượng bản ghi
+
     const [publishers, totalItems] = await queryBuilder.getManyAndCount();
-    
+
     const totalPages = Math.ceil(totalItems / limit);
     const currentPage = page;
-  
+
     return {
       publishers,
       meta: {
@@ -84,7 +80,16 @@ export class PublisherService {
     return await this.publisherRepository.save(publisher);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} publisher`;
+  async remove(id: number): Promise<{ status: number, message: string }> {
+    const publisher = await this.findOne(id);
+
+    if (!publisher) throw new NotFoundException('Publisher not found');
+
+    await this.publisherRepository.softDelete(id);
+
+    return {
+      status: 200,
+      message: 'Publisher deleted successfully',
+    }
   }
 }
