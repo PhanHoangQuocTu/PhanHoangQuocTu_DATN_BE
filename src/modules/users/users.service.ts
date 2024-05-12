@@ -10,6 +10,7 @@ import { generate } from 'generate-password';
 import { MailerService } from '@nestjs-modules/mailer';
 import { Roles } from 'src/utils/common/user-roles.enum';
 import { FindAllUserParamsDto } from './dto/find-all-user-params.dto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -73,6 +74,12 @@ export class UsersService {
       return await this.authService.findUserByPhoneNumber(phoneNumber);
     };
 
+    if (updateUserDto.password && updateUserDto.password !== user.password) {
+      updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
+    } else {
+      delete updateUserDto.password;
+    }
+
     const updateUser = async () => {
       user.dateOfBirth = updateUserDto.dateOfBirth ?? user.dateOfBirth;
       user.gender = updateUserDto.gender ?? user.gender;
@@ -112,6 +119,8 @@ export class UsersService {
     }
 
     await updateUser();
+
+    delete user.password;
 
     return user;
   }

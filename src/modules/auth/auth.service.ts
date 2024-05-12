@@ -47,6 +47,7 @@ export class AuthService {
     const userExists = await this.usersRepository.createQueryBuilder('users')
       .addSelect('users.password')
       .where('users.email = :email', { email: signInDto.email })
+      .andWhere('users.deletedAt IS NULL')
       .getOne();
 
     if (!userExists) throw new BadRequestException('User does not exist');
