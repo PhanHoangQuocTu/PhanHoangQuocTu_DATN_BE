@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, Timestamp, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, DeleteDateColumn, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, Timestamp, UpdateDateColumn } from "typeorm";
 import { UserEntity } from "./user.entity";
 import { ProductEntity } from "./product.entity";
 
@@ -18,6 +18,9 @@ export class CategoryEntity {
 
     @UpdateDateColumn()
     updatedAt: Timestamp;
+
+    @DeleteDateColumn({ type: 'timestamp', nullable: true })
+    deletedAt?: Date;
 
     @ManyToOne(() => UserEntity, (user) => user.categories)
     addedBy: UserEntity

@@ -28,7 +28,7 @@ export class CategoriesService {
     const limit = query?.limit > 0 ? query.limit : 10;
     const offset = (page - 1) * limit;
 
-    const queryBuilder = this.categoriesRepository.createQueryBuilder('category');
+    const queryBuilder = this.categoriesRepository.createQueryBuilder('category').andWhere('category.deletedAt IS NULL');
 
     if (query?.search) {
       const searchQuery = `%${query.search.toLowerCase()}%`;
@@ -88,7 +88,10 @@ export class CategoriesService {
   async remove(id: number): Promise<IStatusResponse> {
     const category = await this.findOne(id);
 
-    await this.categoriesRepository.remove(category);
+    if (!category) throw new NotFoundException('Category not found');
+
+    category.deletedAt = new Date();
+    await this.categoriesRepository.save(category);
 
     return {
       status: 200,
