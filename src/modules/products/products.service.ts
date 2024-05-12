@@ -4,7 +4,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ProductEntity } from 'src/entities/product.entity';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { UserEntity } from 'src/entities/user.entity';
 import { IStatusResponse } from 'src/utils/common';
 import { OrderStatus } from 'src/utils/common/order-status.enum';
@@ -46,7 +46,7 @@ export class ProductsService {
     return await this.productsRepository.save(product);
   }
 
-  async findAll(query: FindAllProductsParamsDto): Promise<{ products: any[], meta: { limit: number, totalProducts: number, totalPage: number, currentPage: number } }> {
+  async findAll(query: FindAllProductsParamsDto): Promise<{ products: any[], meta: { limit: number, totalItems: number, totalPage: number, currentPage: number } }> {
     const limit: number = Number(query.limit) || 999999999;
     const currentPage: number = Number(query.page) || 1;
 
@@ -56,6 +56,7 @@ export class ProductsService {
       .leftJoinAndSelect('product.category', 'category')
       .leftJoinAndSelect('product.author', 'author')
       .leftJoinAndSelect('product.publisher', 'publisher')
+      .where('product.deletedAt IS NULL')
       .leftJoin('product.reviews', 'review')
       .addSelect('COUNT(review.id)', 'reviewCount')
       .addSelect('AVG(review.ratings)::numeric(10,2)', 'avgRating')
@@ -105,33 +106,23 @@ export class ProductsService {
     const totalProducts = await queryBuilder.getCount();
     const totalPage = Math.ceil(totalProducts / limit);
 
-    return { products, meta: { limit, totalProducts, totalPage, currentPage } };
+    return { products, meta: { limit, totalItems: totalProducts, totalPage, currentPage } };
   }
 
 
   async findOne(id: number): Promise<ProductEntity> {
-    const product = await this.productsRepository.findOne({
-      where: { id },
-      relations: { addedBy: true, category: true },
-      select: {
-        addedBy: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          email: true,
-          phoneNumber: true,
-          address: true
-        },
-        category: {
-          id: true,
-          title: true
-        }
-      }
-    });
+    const product = await this.productsRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.addedBy', 'addedBy')
+      .leftJoinAndSelect('product.category', 'category')
+      .leftJoinAndSelect('product.author', 'author')
+      .leftJoinAndSelect('product.publisher', 'publisher')
+      .where('product.id = :id', { id })
+      .getOne();
 
     if (!product) throw new NotFoundException('Product not found');
 
-    return product
+    return product;
   }
 
   async update(
@@ -155,9 +146,11 @@ export class ProductsService {
   }
 
   async remove(id: number): Promise<IStatusResponse> {
-    const product = await this.findOne(id);
+    const product = await this.productsRepository.findOne({ where: { id, deletedAt: IsNull() } });
 
-    await this.productsRepository.remove(product);
+    if (!product) throw new NotFoundException('Product not found or already deleted');
+
+    await this.productsRepository.softDelete(id);
 
     return {
       status: 200,

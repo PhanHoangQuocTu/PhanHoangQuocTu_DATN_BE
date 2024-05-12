@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, Timestamp, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, DeleteDateColumn, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, Timestamp, UpdateDateColumn } from "typeorm";
 import { UserEntity } from "./user.entity";
 import { CategoryEntity } from "./category.entity";
 import { ReviewEntity } from "./review.entity";
@@ -37,6 +37,9 @@ export class ProductEntity {
 
     @UpdateDateColumn()
     updatedAt: Timestamp;
+
+    @DeleteDateColumn()
+    deletedAt?: Date;
 
     @ManyToOne(() => UserEntity, (user) => user.products)
     addedBy: UserEntity;

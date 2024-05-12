@@ -37,7 +37,7 @@ export class ProductsController {
   @ApiQuery({ name: 'maxRating', type: Number, required: false })
   async findAll(
     @Query() query: FindAllProductsParamsDto,
-  ): Promise<{ products: any[], meta: { limit: number, totalProducts: number, totalPage: number, currentPage: number } }> {
+  ): Promise<{ products: any[], meta: { limit: number, totalItems: number, totalPage: number, currentPage: number } }> {
     return await this.productsService.findAll(query);
   }
 

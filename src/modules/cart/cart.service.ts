@@ -98,7 +98,7 @@ export class CartService {
     });
 
     if (!cart) {
-      throw new NotFoundException('Cart not found');
+      this.createCart(user);
     }
 
     return { cart: this.stripCartData(cart) };
