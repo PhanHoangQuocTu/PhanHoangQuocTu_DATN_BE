@@ -26,6 +26,14 @@ export class ProductEntity {
     })
     price: number;
 
+    @Column({
+        type: 'decimal',
+        precision: 10,
+        scale: 2,
+        default: 0.0,
+    })
+    discount: number;
+
     @Column()
     stock: number;
 
