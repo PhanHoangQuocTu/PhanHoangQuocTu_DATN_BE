@@ -37,4 +37,9 @@ export class CreateOrderDto {
     @Type(() => OrderedProductsDto)
     @ValidateNested()
     orderedProducts: OrderedProductsDto[];
+
+    @ApiProperty({
+        example: 'cash'
+    })
+    type: string;
 }

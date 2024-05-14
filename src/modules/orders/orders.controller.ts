@@ -10,6 +10,7 @@ import { UserEntity } from 'src/entities/user.entity';
 import { OrderEntity } from 'src/entities/order.entity';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { FindAllOrdersParamsDto } from './dto/find-all-orders-params.dto';
+import { OrderMeParamsDto } from './dto/order-me-params.dto';
 
 @ApiTags('Order')
 @Controller('orders')
@@ -75,5 +76,14 @@ export class OrdersController {
   @Get('return_url')
   returnUrl(@Param() vnp_Params: any) {
     return this.ordersService.verifyReturn(vnp_Params);
+  }
+
+  @ApiQuery({ name: 'limit', type: Number, required: false },)
+  @ApiQuery({ name: 'page', type: Number, required: false })
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN, Roles.USER]))
+  @Get('/user/me')
+  async findOrdersByUser(@CurrentUser() currentUser: UserEntity, @Query() query: OrderMeParamsDto) {
+    return await this.ordersService.findOrdersByUser(currentUser.id, query);
   }
 }

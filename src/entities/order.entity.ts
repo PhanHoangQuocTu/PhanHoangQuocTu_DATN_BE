@@ -1,4 +1,4 @@
-import { OrderStatus } from "src/utils/common/order-status.enum";
+import { OrderStatus, OrderType } from "src/utils/common/order-status.enum";
 import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn, Timestamp } from "typeorm";
 import { UserEntity } from "./user.entity";
 import { ShippingEntity } from "./shipping.entity";
@@ -15,6 +15,9 @@ export class OrderEntity {
     @Column({ type: "enum", enum: OrderStatus, default: OrderStatus.PROCESSING })
     status: string;
 
+    @Column({ type: "enum", enum: OrderType, default: OrderType.cash })
+    type: string;
+
     @Column({ nullable: true })
     shippedAt: Date;
 
@@ -23,6 +26,7 @@ export class OrderEntity {
 
     @ManyToOne(() => UserEntity, (user) => user.ordersUpdateBy)
     updatedBy: UserEntity;
+
 
     @OneToOne(() => ShippingEntity, (shipping) => shipping.order, {
         cascade: true

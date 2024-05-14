@@ -4,3 +4,8 @@ export enum OrderStatus {
     DELIVERED = 'delivered',
     CANCELLED = 'cancelled',
 }
+
+export enum OrderType {
+    cash = 'cash',
+    vnpay = 'vnpay',
+}

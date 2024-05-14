@@ -17,6 +17,7 @@ import * as moment from 'moment';
 import { env } from 'src/types/const';
 import * as qs from 'qs';
 import * as crypto from 'crypto';
+import { OrderMeParamsDto } from './dto/order-me-params.dto';
 @Injectable()
 export class OrdersService {
   constructor(
@@ -290,5 +291,37 @@ export class OrdersService {
     }
   };
 
+  async findOrdersByUser(
+    userId: number,
+    query: OrderMeParamsDto
+  ): Promise<{ data: OrderEntity[]; meta: { limit: number; totalItems: number; totalPages: number; currentPage: number; } }> {
+    const queryBuilder = this.orderRepository.createQueryBuilder('order')
+      .leftJoinAndSelect('order.shippingAddress', 'shippingAddress')
+      .leftJoinAndSelect('order.user', 'user')
+      .leftJoinAndSelect('order.products', 'orderProducts')
+      .leftJoinAndSelect('orderProducts.product', 'product')
+      .where('user.id = :userId', { userId })
+      .orderBy('order.orderAt', 'DESC');
 
+    const page = query?.page > 0 ? query.page : 1;
+    const limit = query?.limit > 0 ? query.limit : 10;
+    const offset = (page - 1) * limit;
+
+    const [orders, totalItems] = await queryBuilder
+      .skip(offset)
+      .take(limit)
+      .getManyAndCount();
+
+    const totalPages = Math.ceil(totalItems / limit);
+
+    return {
+      data: orders,
+      meta: {
+        limit,
+        totalItems,
+        totalPages,
+        currentPage: page
+      }
+    };
+  }
 }
