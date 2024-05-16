@@ -83,25 +83,21 @@ export class CartService {
       throw new NotFoundException('User not found');
     }
 
-    const cart = await this.cartRepository.findOne({
-      where: {
-        user: { id: userId },
-        isOrdered: false
-      },
-      relations: {
-        items: {
-          product: {
-            category: true,
-          },
-        }
-      },
-    });
+    const cart = await this.cartRepository.createQueryBuilder('cart')
+      .leftJoinAndSelect('cart.items', 'item')
+      .leftJoinAndSelect('item.product', 'product')
+      .leftJoinAndSelect('product.category', 'category')
+      .where('cart.user.id = :userId', { userId })
+      .andWhere('cart.isOrdered = false')
+      .andWhere('product.deletedAt IS NULL')
+      .orderBy('item.id', 'ASC')
+      .getOne();
 
     if (!cart) {
       this.createCart(user);
     }
 
-    return { cart: this.stripCartData(cart) };
+    return { cart: cart };
   }
 
   private async createCart(user: UserEntity): Promise<CartEntity> {
@@ -135,14 +131,17 @@ export class CartService {
     };
   }
 
-  async updateCartItemQuantity(cartItemId: number, quantity: number): Promise<{ message: string }> {
-    const cartItem = await this.cartItemRepository.findOne({ where: { cart: { items: { id: cartItemId } } }, relations: { cart: true } });
+  async updateCartItemQuantity(cartItemId: number, quantity: number, user: UserEntity): Promise<{ message: string }> {
+    const cartItem = await this.cartItemRepository.findOne({ where: { id: cartItemId }, relations: { product: true } });
+
     if (!cartItem) {
-      throw new NotFoundException('Cart item not found');
+      this.createCart(user);
     }
 
     cartItem.quantity = quantity;
+
     await this.cartItemRepository.save(cartItem);
+
     return { message: 'Cart item quantity updated successfully' };
   }
 }

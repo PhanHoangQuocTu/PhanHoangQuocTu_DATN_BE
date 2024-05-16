@@ -47,8 +47,9 @@ export class CartController {
   async updateCartItemQuantity(
     @Param('cartItemId') cartItemId: number,
     @Body() updateCartItemDto: UpdateCartDto,
+    @CurrentUser() currentUser: UserEntity
   ): Promise<{ message: string }> {
     const { quantity } = updateCartItemDto;
-    return this.cartService.updateCartItemQuantity(cartItemId, quantity);
+    return this.cartService.updateCartItemQuantity(cartItemId, quantity, currentUser);
   }
 }
