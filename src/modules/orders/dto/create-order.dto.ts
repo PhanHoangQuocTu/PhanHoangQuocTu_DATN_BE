@@ -25,12 +25,20 @@ export class CreateOrderDto {
             {
                 id: 1,
                 product_unit_price: 100000,
-                product_quanity: 1
+                product_quanity: 1,
+                title: 'Product 1',
+                description: 'Description 1',
+                discount: 0,
+                images: ["image1"]
             },
             {
                 id: 2,
                 product_unit_price: 200000,
-                product_quanity: 2
+                product_quanity: 2,
+                title: 'Product 2',
+                description: 'Description 2',
+                discount: 0,
+                images: ["image2"]
             }
         ]
     })

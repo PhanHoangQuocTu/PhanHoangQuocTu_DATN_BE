@@ -16,6 +16,24 @@ export class OrdersProductsEntity {
     @ManyToOne(() => OrderEntity, (order) => order.products)
     order: OrderEntity
 
+    @Column({
+        type: 'decimal',
+        precision: 10,
+        scale: 2,
+        default: 0.0,
+        nullable: true
+    })
+    discount: number;
+
+    @Column({ nullable: true })
+    title: string;
+
+    @Column({ type: 'simple-array', nullable: true })
+    images: string[]
+
+    @Column({ nullable: true })
+    description: string;
+
     @ManyToOne(() => ProductEntity, (product) => product.products, {
         eager: true
     })

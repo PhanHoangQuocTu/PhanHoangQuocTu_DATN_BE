@@ -54,6 +54,10 @@ export class OrdersService {
       product: ProductEntity;
       product_unit_price: number;
       product_quantity: number;
+      title: string;
+      description: string;
+      discount: number;
+      images: string[];
     }[] = []
 
     for (let i = 0; i < createOrderDto.orderedProducts.length; i++) {
@@ -64,8 +68,12 @@ export class OrdersService {
       const product_quantity = createOrderDto.orderedProducts[i].product_quanity;
 
       const product_unit_price = createOrderDto.orderedProducts[i].product_unit_price;
+      const title = createOrderDto.orderedProducts[i].title;
+      const description = createOrderDto.orderedProducts[i].description;
+      const discount = createOrderDto.orderedProducts[i].discount;
+      const images = createOrderDto.orderedProducts[i].images;
 
-      ordersProductsEntity.push({ order, product, product_unit_price, product_quantity })
+      ordersProductsEntity.push({ order, product, product_unit_price, product_quantity, title, description, discount, images });
     }
 
     await this.ordersProductRepository.createQueryBuilder()
