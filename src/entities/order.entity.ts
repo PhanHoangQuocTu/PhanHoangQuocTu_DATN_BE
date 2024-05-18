@@ -1,4 +1,4 @@
-import { OrderStatus, OrderType } from "src/utils/common/order-status.enum";
+import { isPaidType, OrderStatus, OrderType } from "src/utils/common/order-status.enum";
 import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn, Timestamp } from "typeorm";
 import { UserEntity } from "./user.entity";
 import { ShippingEntity } from "./shipping.entity";
@@ -17,6 +17,9 @@ export class OrderEntity {
 
     @Column({ type: "enum", enum: OrderType, default: OrderType.cash })
     type: string;
+
+    @Column({ type: "enum", enum: isPaidType, default: isPaidType.false })
+    isPaid: string;
 
     @Column({ nullable: true })
     shippedAt: Date;

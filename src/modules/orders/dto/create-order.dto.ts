@@ -42,4 +42,9 @@ export class CreateOrderDto {
         example: 'cash'
     })
     type: string;
+
+    @ApiProperty({
+        example: 'false'
+    })
+    isPaid: string;
 }
