@@ -112,6 +112,12 @@ export class OrdersService {
       }
     }
 
+    if (query?.status) {
+      queryBuilder.andWhere('order.status = :status', { status: query.status });
+    }
+
+    queryBuilder.orderBy('order.createdAt', 'DESC');
+
     queryBuilder.skip(offset).take(limit);
 
     const [orders, totalItems] = await queryBuilder.getManyAndCount();
@@ -150,7 +156,7 @@ export class OrdersService {
     id: number,
     updateOrderStatusDto: UpdateOrderStatusDto,
     currentUser: UserEntity
-  ): Promise<OrderEntity> {
+  ): Promise<{ message: string; status: number }> {
     let order = await this.findOne(id);
 
     if ((order.status === OrderStatus.DELIVERED || order.status === OrderStatus.CANCELLED)) {
@@ -162,7 +168,10 @@ export class OrdersService {
     }
 
     if ((updateOrderStatusDto.status === OrderStatus.SHIPPED && order.status === OrderStatus.SHIPPED)) {
-      return order;
+      return {
+        message: `update order ${order.id} status to ${updateOrderStatusDto.status} successfully`,
+        status: 200
+      };
     }
 
     if (updateOrderStatusDto.status === OrderStatus.SHIPPED) {
@@ -183,7 +192,10 @@ export class OrdersService {
       await this.stockUpdate(order, OrderStatus.DELIVERED);
     }
 
-    return order;
+    return {
+      message: `update order ${order.id} status to ${updateOrderStatusDto.status} successfully`,
+      status: 200
+    };
   }
 
   async cancel(id: number, currentUser: UserEntity) {

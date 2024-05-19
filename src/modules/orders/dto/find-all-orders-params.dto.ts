@@ -4,4 +4,6 @@ export type FindAllOrdersParamsDto = {
     limit: number;
 
     page: number;
+
+    status: string;
 }

@@ -30,6 +30,7 @@ export class OrdersController {
   @ApiQuery({ name: 'search', type: String, required: false },)
   @ApiQuery({ name: 'limit', type: Number, required: false },)
   @ApiQuery({ name: 'page', type: Number, required: false })
+  @ApiQuery({ name: 'status', type: String, required: false })
   async findAll(@Query() query: FindAllOrdersParamsDto): Promise<{ orders: OrderEntity[]; meta: { limit: number; totalItems: number; totalPages: number; currentPage: number; } }> {
     return await this.ordersService.findAll(query);
   }
