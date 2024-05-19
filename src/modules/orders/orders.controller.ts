@@ -11,11 +11,19 @@ import { OrderEntity } from 'src/entities/order.entity';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { FindAllOrdersParamsDto } from './dto/find-all-orders-params.dto';
 import { OrderMeParamsDto } from './dto/order-me-params.dto';
+import { MonthlyRevenueParamsDto } from './dto/monthly-revenue-params.dto';
 
 @ApiTags('Order')
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) { }
+
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN]))
+  @Get('/monthly-revenue')
+  async getMonthlyRevenueAPI(@Query() query: MonthlyRevenueParamsDto) {
+    return await this.ordersService.getMonthlyRevenue(query);
+  }
 
   @ApiBearerAuth('JWT-auth')
   @UseGuards(AuthenticationGuard)
@@ -87,4 +95,6 @@ export class OrdersController {
   async findOrdersByUser(@CurrentUser() currentUser: UserEntity, @Query() query: OrderMeParamsDto) {
     return await this.ordersService.findOrdersByUser(currentUser.id, query);
   }
+
+
 }

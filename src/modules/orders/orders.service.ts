@@ -18,6 +18,7 @@ import { env } from 'src/types/const';
 import * as qs from 'qs';
 import * as crypto from 'crypto';
 import { OrderMeParamsDto } from './dto/order-me-params.dto';
+import { MonthlyRevenueParamsDto, MonthlyRevenueResponse, MonthlyRevenueResult } from './dto/monthly-revenue-params.dto';
 @Injectable()
 export class OrdersService {
   constructor(
@@ -343,5 +344,64 @@ export class OrdersService {
         currentPage: page
       }
     };
+  }
+
+  async getMonthlyRevenue(query: MonthlyRevenueParamsDto): Promise<MonthlyRevenueResponse> {
+    const page = query.page > 0 ? query.page : 1;
+    const limit = query.limit > 0 ? query.limit : 10;
+
+    const deliveredOrdersRaw = await this.orderRepository
+      .createQueryBuilder('order')
+      .select([
+        "TO_CHAR(order.deliveredAt, 'YYYY-MM') AS month",
+        'orderProduct.product_unit_price',
+        'orderProduct.discount',
+        'orderProduct.product_quantity'
+      ])
+      .leftJoin('order.products', 'orderProduct')
+      .where('order.status = :status', { status: 'delivered' })
+      .getRawMany();
+
+    const monthlyRevenueData = this.calculateMonthlyRevenue(deliveredOrdersRaw);
+
+    const totalItems = monthlyRevenueData.length;
+    const totalPages = Math.ceil(totalItems / limit);
+    const paginatedData = this.applyPagination(monthlyRevenueData, page, limit);
+
+    return {
+      data: paginatedData,
+      meta: {
+        totalItems,
+        totalPages,
+        currentPage: page,
+        limit,
+      }
+    };
+  }
+
+  private calculateMonthlyRevenue(deliveredOrders: any[]): MonthlyRevenueResult[] {
+    const monthlyRevenue = deliveredOrders.reduce((acc, current) => {
+      const month = current.month;
+      const unitPrice = Number(current.orderProduct_product_unit_price) || 0;
+      const discount = Number(current.orderProduct_discount) || 0;
+      const quantity = Number(current.orderProduct_product_quantity) || 0;
+
+      const totalPrice = (unitPrice * (1 - discount / 100)) * quantity;
+
+      if (!acc[month]) {
+        acc[month] = { month, totalRevenue: 0 };
+      }
+      acc[month].totalRevenue += totalPrice;
+
+      return acc;
+    }, {});
+
+    return Object.values(monthlyRevenue);
+  }
+
+  private applyPagination(monthlyRevenueData: MonthlyRevenueResult[], page: number, limit: number): MonthlyRevenueResult[] {
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    return monthlyRevenueData.slice(startIndex, endIndex);
   }
 }
