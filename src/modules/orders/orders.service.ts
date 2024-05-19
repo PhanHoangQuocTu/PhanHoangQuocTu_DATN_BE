@@ -116,7 +116,7 @@ export class OrdersService {
       queryBuilder.andWhere('order.status = :status', { status: query.status });
     }
 
-    queryBuilder.orderBy('order.createdAt', 'DESC');
+    queryBuilder.orderBy('order.orderAt', 'DESC');
 
     queryBuilder.skip(offset).take(limit);
 
