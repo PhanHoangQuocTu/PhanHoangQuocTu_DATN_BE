@@ -55,7 +55,7 @@ export class UsersController {
 
   @ApiBearerAuth('JWT-auth')
   @UseGuards(AuthenticationGuard)
-  @Patch(':id')
+  @Patch('/edit-profile')
   async update(@CurrentUser() currentUser: UserEntity, @Body() updateUserDto: UpdateUserDto): Promise<UserEntity> {
     return await this.usersService.update(+currentUser?.id, updateUserDto);
   }
