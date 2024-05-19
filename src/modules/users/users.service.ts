@@ -11,6 +11,7 @@ import { MailerService } from '@nestjs-modules/mailer';
 import { Roles } from 'src/utils/common/user-roles.enum';
 import { FindAllUserParamsDto } from './dto/find-all-user-params.dto';
 import * as bcrypt from 'bcrypt';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Injectable()
 export class UsersService {
@@ -63,6 +64,23 @@ export class UsersService {
     return user;
   }
 
+  async changePassword(id: number, changePasswordDto: ChangePasswordDto): Promise<IStatusResponse> {
+    const user = await this.findOne(id);
+    
+    const isMatch = await bcrypt.compare(changePasswordDto.currentPassword, user.password);
+    if (!isMatch) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+  
+    const hashedPassword = await bcrypt.hash(changePasswordDto.newPassword, 10);
+    await this.usersRepository.update(id, { password: hashedPassword });
+  
+    return {
+      status: 200,
+      message: 'Password changed successfully',
+    };
+  }
+
   async update(id: number, updateUserDto: UpdateUserDto): Promise<UserEntity> {
     const user = await this.findOne(id);
 
@@ -73,12 +91,6 @@ export class UsersService {
     const isPhoneNumberExists = async (phoneNumber: string) => {
       return await this.authService.findUserByPhoneNumber(phoneNumber);
     };
-
-    if (updateUserDto.password && updateUserDto.password !== user.password) {
-      updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
-    } else {
-      delete updateUserDto.password;
-    }
 
     const updateUser = async () => {
       user.dateOfBirth = updateUserDto.dateOfBirth ?? user.dateOfBirth;

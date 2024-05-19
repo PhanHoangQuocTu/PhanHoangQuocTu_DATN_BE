@@ -13,6 +13,7 @@ import { Roles } from 'src/utils/common/user-roles.enum';
 import { IStatusResponse } from 'src/utils/common';
 import { ActiveAccountDto } from './dto/active-account.dto';
 import { FindAllUserParamsDto } from './dto/find-all-user-params.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 // import { AuthorizeRoles } from 'src/utils/decorators/authorize-roles.decorator';
 
 @ApiTags('User')
@@ -55,8 +56,19 @@ export class UsersController {
   @ApiBearerAuth('JWT-auth')
   @UseGuards(AuthenticationGuard)
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto): Promise<UserEntity> {
-    return await this.usersService.update(+id, updateUserDto);
+  async update(@CurrentUser() currentUser: UserEntity, @Body() updateUserDto: UpdateUserDto): Promise<UserEntity> {
+    return await this.usersService.update(+currentUser?.id, updateUserDto);
+  }
+
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.USER, Roles.ADMIN]))
+  @Post('change-password')
+  async changePassword(@CurrentUser() currentUser: UserEntity, @Body() changePasswordDto: ChangePasswordDto): Promise<{ message: string }> {
+    try {
+      return await this.usersService.changePassword(+currentUser.id, changePasswordDto);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
   @ApiBearerAuth('JWT-auth')
