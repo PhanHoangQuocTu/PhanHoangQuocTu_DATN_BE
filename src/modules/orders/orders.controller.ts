@@ -53,7 +53,7 @@ export class OrdersController {
   }
 
   @ApiBearerAuth('JWT-auth')
-  @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN]))
+  @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN, Roles.USER]))
   @Put('cancel/:id')
   async cancel(@Param('id') id: string, @CurrentUser() currentUser: UserEntity) {
     return await this.ordersService.cancel(+id, currentUser);
