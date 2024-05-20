@@ -64,11 +64,8 @@ export class UsersController {
   @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.USER, Roles.ADMIN]))
   @Post('change-password')
   async changePassword(@CurrentUser() currentUser: UserEntity, @Body() changePasswordDto: ChangePasswordDto): Promise<{ message: string }> {
-    try {
-      return await this.usersService.changePassword(+currentUser.id, changePasswordDto);
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
+    return await this.usersService.changePassword(+currentUser.id, changePasswordDto);
+
   }
 
   @ApiBearerAuth('JWT-auth')
@@ -97,10 +94,7 @@ export class UsersController {
     @CurrentUser() currentUser: UserEntity
   ) {
     try {
-      const isActivated = await this.usersService.activateUser(currentUser?.email, activeAccountDto.verifyCode);
-      if (isActivated) {
-        return { message: 'User has been activated successfully.' };
-      }
+      return await this.usersService.activateUser(currentUser?.email, activeAccountDto.verifyCode);
     } catch (error) {
       throw new BadRequestException(error.message);
     }

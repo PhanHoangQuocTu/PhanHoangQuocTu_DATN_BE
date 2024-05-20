@@ -57,7 +57,11 @@ export class UsersService {
   }
 
   async findOne(id: number): Promise<UserEntity> {
-    const user = await this.usersRepository.findOneBy({ id });
+    const user = await this.usersRepository.createQueryBuilder('user')
+      .addSelect('user.password')
+      .where('user.id = :id', { id })
+      .andWhere('user.deletedAt IS NULL')
+      .getOne();
 
     if (!user) throw new NotFoundException('User not found');
 
@@ -66,15 +70,19 @@ export class UsersService {
 
   async changePassword(id: number, changePasswordDto: ChangePasswordDto): Promise<IStatusResponse> {
     const user = await this.findOne(id);
-    
+
+    if (!user || !user.password) {
+      throw new NotFoundException('User not found or password is undefined');
+    }
+
     const isMatch = await bcrypt.compare(changePasswordDto.currentPassword, user.password);
     if (!isMatch) {
       throw new BadRequestException('Current password is incorrect');
     }
-  
+
     const hashedPassword = await bcrypt.hash(changePasswordDto.newPassword, 10);
     await this.usersRepository.update(id, { password: hashedPassword });
-  
+
     return {
       status: 200,
       message: 'Password changed successfully',
@@ -181,17 +189,24 @@ export class UsersService {
     return { message: 'Verify code has been sent to your email' };
   }
 
-  async activateUser(email: string, verifyCode: string): Promise<boolean> {
-    const user = await this.usersRepository.findOne({
+  async activateUser(email: string, verifyCode: string): Promise<UserEntity> {
+    let user = await this.usersRepository.findOne({
       where: { email, verifyCode },
     });
 
-    if (user) {
-      await this.usersRepository.update(user.id, { isActice: true, verifyCode: null });
-      return true;
-    } else {
+    if (!user) {
       throw new BadRequestException('Invalid verification code or user not found');
     }
+
+    await this.usersRepository.update(user.id, { isActice: true, verifyCode: null });
+
+    user = await this.usersRepository.findOneBy({ id: user.id });
+
+    if (!user) {
+      throw new NotFoundException('User not found after update');
+    }
+
+    return user;
   }
 
   async isAdmin(currentUser: UserEntity): Promise<{ data: boolean }> {
