@@ -13,6 +13,8 @@ import { MetadataModule } from './modules/metadata/metadata.module';
 import { AuthorsModule } from './modules/authors/authors.module';
 import { PublisherModule } from './modules/publisher/publisher.module';
 import { MailModule } from './mail/mail.module';
+import { PostModule } from './modules/post/post.module';
+import { CommentModule } from './modules/comment/comment.module';
 
 @Module({
   imports: [
@@ -28,6 +30,8 @@ import { MailModule } from './mail/mail.module';
     MetadataModule,
     AuthorsModule,
     PublisherModule,
+    PostModule,
+    CommentModule,
   ],
   controllers: [],
   providers: [],

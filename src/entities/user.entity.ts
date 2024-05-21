@@ -7,6 +7,8 @@ import { OrderEntity } from "./order.entity";
 import { CartEntity } from "./cart.entity";
 import { AuthorEntity } from "./author.entity";
 import { PublisherEntity } from "./publisher.entity";
+import { PostEntity } from "./post.entity";
+import { CommentEntity } from "./comment.entity";
 
 @Entity({ name: "users" })
 export class UserEntity {
@@ -78,4 +80,10 @@ export class UserEntity {
 
     @OneToMany(() => CartEntity, (cart) => cart.user)
     carts: CartEntity[]
+
+    @OneToMany(() => PostEntity, post => post.author)
+    posts: PostEntity[];
+
+    @OneToMany(() => CommentEntity, comment => comment.author)
+    comments: CommentEntity[];
 }
