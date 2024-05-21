@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Delete, UseGuards, Put, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, UseGuards, Put, Query, Req, BadRequestException } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
@@ -12,6 +12,9 @@ import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { FindAllOrdersParamsDto } from './dto/find-all-orders-params.dto';
 import { OrderMeParamsDto } from './dto/order-me-params.dto';
 import { MonthlyRevenueParamsDto } from './dto/monthly-revenue-params.dto';
+import { Request } from 'express';
+import { CreateVnpayDto } from './dto/create-vnpay.dto';
+import { VnpayReturnParams } from './dto/vnpay_return-params.dto';
 
 @ApiTags('Order')
 @Controller('orders')
@@ -23,6 +26,17 @@ export class OrdersController {
   @Get('/monthly-revenue')
   async getMonthlyRevenueAPI(@Query() query: MonthlyRevenueParamsDto) {
     return await this.ordersService.getMonthlyRevenue(query);
+  }
+
+  @ApiQuery({ name: 'orderId', type: String, required: false },)
+  @ApiQuery({ name: 'vnp_ResponseCode', type: String, required: false },)
+  @ApiQuery({ name: 'vnp_TransactionNo', type: String, required: false },)
+  @ApiQuery({ name: 'vnp_TransactionStatus', type: String, required: false },)
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN, Roles.USER]))
+  @Get('return_url')
+  async returnUrl(@Query() vnp_Params: VnpayReturnParams) {
+    return await this.ordersService.verifyReturn(vnp_Params);
   }
 
   @ApiBearerAuth('JWT-auth')
@@ -49,6 +63,8 @@ export class OrdersController {
   async findOne(@Param('id') id: string): Promise<OrderEntity> {
     return await this.ordersService.findOne(+id);
   }
+
+
 
   @ApiBearerAuth('JWT-auth')
   @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN]))
@@ -77,14 +93,21 @@ export class OrdersController {
 
   @ApiBearerAuth('JWT-auth')
   @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN, Roles.USER]))
-  @Post("vnpay_create_payment_url")
-  async createVNPAYPaymentUrl(): Promise<{ url: string }> {
-    return await this.ordersService.createPaymentUrl();
-  }
-
-  @Get('return_url')
-  returnUrl(@Param() vnp_Params: any) {
-    return this.ordersService.verifyReturn(vnp_Params);
+  @Post('/create-checkout-vnpay')
+  async createCheckoutVnpay(
+    @Body() createVnpayDto: CreateVnpayDto,
+    @Query('returnUrlLocal') returnUrlLocal: string,
+    @Req() req: Request,
+  ) {
+    try {
+      const ipAddr = this.getIp(req);
+      const checkoutData = this.ordersService.createCheckoutVnpay(createVnpayDto, ipAddr, returnUrlLocal);
+      return {
+        url: checkoutData
+      };
+    } catch (error) {
+      return new BadRequestException(error);
+    }
   }
 
   @ApiQuery({ name: 'limit', type: Number, required: false },)
@@ -96,5 +119,11 @@ export class OrdersController {
     return await this.ordersService.findOrdersByUser(currentUser.id, query);
   }
 
-
+  private getIp(req: Request): string {
+    return (
+      req?.headers['x-forwarded-for'] ||
+      req?.connection?.remoteAddress ||
+      req?.socket?.remoteAddress
+    ) as string;
+  }
 }

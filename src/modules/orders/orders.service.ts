@@ -9,16 +9,18 @@ import { ShippingEntity } from 'src/entities/shipping.entity';
 import { ProductEntity } from 'src/entities/product.entity';
 import { ProductsService } from '../products/products.service';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
-import { OrderStatus } from 'src/utils/common/order-status.enum';
+import { OrderStatus, OrderType } from 'src/utils/common/order-status.enum';
 import { FindAllOrdersParamsDto } from './dto/find-all-orders-params.dto';
 import { CartService } from '../cart/cart.service';
 import { CartEntity } from 'src/entities/cart.entity';
-import * as moment from 'moment';
 import { env } from 'src/types/const';
-import * as qs from 'qs';
-import * as crypto from 'crypto';
+import * as moment from 'moment';
 import { OrderMeParamsDto } from './dto/order-me-params.dto';
 import { MonthlyRevenueParamsDto, MonthlyRevenueResponse, MonthlyRevenueResult } from './dto/monthly-revenue-params.dto';
+import { CreateVnpayDto } from './dto/create-vnpay.dto';
+import { VNPay } from 'vnpay';
+import { VnpayReturnParams } from './dto/vnpay_return-params.dto';
+
 @Injectable()
 export class OrdersService {
   constructor(
@@ -47,6 +49,14 @@ export class OrdersService {
     orderEntity.shippingAddress = shippingEntity;
 
     orderEntity.user = currentUser;
+
+    orderEntity.type = createOrderDto.type;
+
+    orderEntity.isPaid = createOrderDto.isPaid;
+
+    if (orderEntity.type == OrderType.vnpay) {
+      orderEntity.status = OrderStatus.CANCELLED;
+    }
 
     const orderTbl = await this.orderRepository.save(orderEntity);
 
@@ -244,73 +254,55 @@ export class OrdersService {
   }
 
 
-  async createPaymentUrl(): Promise<{ url: string }> {
-    process.env.TZ = "Asia/Ho_Chi_Minh";
-
-    const date = new Date();
-    const createDate = moment(date).format("YYYYMMDDHHmmss");
-
-    const ipAddr = "127.0.0.1";
+  createCheckoutVnpay(createVnpayDto: CreateVnpayDto, ip: string, returnUrlLocal: string): any {
+    const secretKey = env.VNPAY_HASH_SECRET;
     const tmnCode = env.VNPAY_TMN_CODE;
-    const secretKey = env.VNPAY_HASH_SECRET;
-    let vnpUrl = env.VNPAY_URL;
-    const returnUrl = env.VNPAY_RETURN_URL;
-    const orderId = moment(date).format("DDHHmmss");
+    const createDate = moment().format('YYYYMMDDHHmmss');
+    const orderId = moment().format('DDHHmmss');
+    const vnpay = new VNPay({
+      tmnCode: tmnCode,
+      secureSecret: secretKey,
+      vnpayHost: 'https://sandbox.vnpayment.vn',
+      testMode: true,
+      hashAlgorithm: 'SHA512',
+    });
 
-    const currCode = "VND";
-    let vnp_Params = {};
-    vnp_Params["vnp_Version"] = "2.1.0";
-    vnp_Params["vnp_Command"] = "pay";
-    vnp_Params["vnp_TmnCode"] = tmnCode;
-    vnp_Params["vnp_Locale"] = "vn";
-    vnp_Params["vnp_CurrCode"] = currCode;
-    vnp_Params["vnp_TxnRef"] = orderId;
-    vnp_Params["vnp_OrderInfo"] = "Thanh toan cho ma GD:" + orderId;
-    vnp_Params["vnp_OrderType"] = "other";
-    vnp_Params["vnp_Amount"] = 100000 * 100;
-    vnp_Params["vnp_ReturnUrl"] = returnUrl;
-    vnp_Params["vnp_IpAddr"] = ipAddr;
-    vnp_Params["vnp_CreateDate"] = createDate;
-    vnp_Params["vnp_BankCode"] = "VNBANK";
+    const paymentUrl = vnpay.buildPaymentUrl({
+      vnp_Amount: createVnpayDto?.totalAmount,
+      vnp_IpAddr: ip,
+      vnp_TxnRef: createDate,
+      vnp_OrderInfo: `Thanh toan don hang ${orderId}`,
+      vnp_OrderType: "other",
+      vnp_ReturnUrl: returnUrlLocal || 'http://localhost:3000/vnpay-return',
+      vnp_Locale: "vn",
+    });
 
-    vnp_Params = this.sortObject(vnp_Params);
+    return paymentUrl;
+  }
 
-    const signData = qs.stringify(vnp_Params, { encode: false });
-    const hmac = crypto.createHmac("sha512", secretKey);
-    const signed = hmac.update(new Buffer(signData, "utf-8")).digest("hex");
-    vnp_Params["vnp_SecureHash"] = signed;
-    vnpUrl += "?" + qs.stringify(vnp_Params, { encode: false });
+  async verifyReturn(vnp_Params: VnpayReturnParams): Promise<{ message: string; status: number; order?: OrderEntity }> {
+    const orderId = Number(vnp_Params.orderId);
+    const responseCode = vnp_Params.vnp_ResponseCode;
+    const transactionStatus = vnp_Params.vnp_TransactionStatus;
 
-    return {
-      url: vnpUrl,
+    const order = await this.findOne(+orderId);
+
+    if (!order) {
+      throw new NotFoundException("Order not found");
     }
-  };
 
-  async verifyReturn(vnp_Params: any) {
-
-    const secureHash = vnp_Params["vnp_SecureHash"];
-
-    delete vnp_Params["vnp_SecureHash"];
-    delete vnp_Params["vnp_SecureHashType"];
-
-    vnp_Params = this.sortObject(vnp_Params);
-
-    const secretKey = env.VNPAY_HASH_SECRET;
-
-    const signData = qs.stringify(vnp_Params, { encode: false });
-    const hmac = crypto.createHmac("sha512", secretKey);
-    const signed = hmac.update(new Buffer(signData, "utf-8")).digest("hex");
-
-    if (secureHash === signed) {
-      return {
-        message: "success",
-      }
+    if (responseCode === "00" && transactionStatus === "00") {
+      order.isPaid = "true";
+      order.status = OrderStatus.PROCESSING;
+      await this.orderRepository.save(order);
+      return { message: "Transaction successful", status: 200, order };
     } else {
-      return {
-        message: "fail",
-      }
+      order.status = OrderStatus.CANCELLED;
+      order.isPaid = "false"
+      await this.orderRepository.save(order);
+      return { message: "Transaction failed or cancelled", status: 400, order };
     }
-  };
+  }
 
   async findOrdersByUser(
     userId: number,

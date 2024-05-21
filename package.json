@@ -37,6 +37,7 @@
     "bcrypt": "^5.1.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "crypto": "^1.0.1",
     "dotenv": "^16.4.5",
     "generate-password": "^1.7.1",
     "handlebars": "^4.7.8",
@@ -47,7 +48,8 @@
     "qs": "^6.12.1",
     "reflect-metadata": "^0.2.1",
     "rxjs": "^7.8.1",
-    "typeorm": "^0.3.20"
+    "typeorm": "^0.3.20",
+    "vnpay": "^1.3.6"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",
