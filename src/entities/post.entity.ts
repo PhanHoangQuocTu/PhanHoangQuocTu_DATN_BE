@@ -19,6 +19,9 @@ export class PostEntity {
   @Column({ default: false })
   isApproved: boolean;
 
+  @Column({ type: 'int', default: 0 })
+  commentCount: number;
+
   @ManyToOne(() => UserEntity, user => user.posts)
   author: UserEntity;
 

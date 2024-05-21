@@ -60,7 +60,8 @@ export class PostService {
       const searchQuery = `%${query.search.toLowerCase()}%`;
       queryBuilder.andWhere('(LOWER(post.title) LIKE :search OR LOWER(author.email) LIKE :search)', { search: searchQuery });
     }
-  
+    queryBuilder.loadRelationCountAndMap('post.commentCount', 'post.comments');
+
     queryBuilder.orderBy('post.createdAt', 'DESC');
   
     queryBuilder.skip(offset).take(limit);
@@ -113,6 +114,7 @@ export class PostService {
       const searchQuery = `%${query.search.toLowerCase()}%`;
       queryBuilder.andWhere('(LOWER(post.title) LIKE :search OR LOWER(post.content) LIKE :search)', { search: searchQuery });
     }
+    queryBuilder.loadRelationCountAndMap('post.commentCount', 'post.comments');
 
     queryBuilder.orderBy('post.createdAt', 'DESC');
 
