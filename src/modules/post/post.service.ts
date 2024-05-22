@@ -91,6 +91,7 @@ export class PostService {
 
   async softDeletePost(id: number): Promise<{ message: string; code: number }> {
     const result = await this.postRepository.softDelete(id);
+
     if (result.affected === 0) {
       throw new NotFoundException(`Post with ID "${id}" not found`);
     }

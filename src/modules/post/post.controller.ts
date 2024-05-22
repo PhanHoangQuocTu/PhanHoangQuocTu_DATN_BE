@@ -29,6 +29,13 @@ export class PostController {
 
   @ApiBearerAuth('JWT-auth')
   @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN, Roles.USER]))
+  @Get(':id')
+  async findOne(@Param('id') id: string): Promise<PostEntity> {
+    return await this.postService.findOne(+id);
+  }
+
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN, Roles.USER]))
   @Post('create')
   async create(@Body() createPostDto: CreatePostDto, @CurrentUser() currentUser: UserEntity): Promise<PostEntity> {
     return await this.postService.create(+currentUser.id, createPostDto);
