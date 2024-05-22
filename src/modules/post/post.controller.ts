@@ -27,8 +27,6 @@ export class PostController {
     return await this.postService.findAllPostsByUser(+currentUser.id, query);
   }
 
-  @ApiBearerAuth('JWT-auth')
-  @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN, Roles.USER]))
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<PostEntity> {
     return await this.postService.findOne(+id);
