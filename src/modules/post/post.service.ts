@@ -15,8 +15,11 @@ export class PostService {
   ) { }
 
   async findOne(postId: number): Promise<PostEntity> {
-    const post = await this.postRepository.findOneBy({ id: postId });
-    
+    const post = await this.postRepository.findOne({
+      where: { id: postId },
+      relations: ['author'],
+    });
+
     if (!post) {
       throw new NotFoundException('Post not found');
     }
@@ -36,11 +39,11 @@ export class PostService {
 
   async approvePost(postId: number): Promise<PostEntity> {
     const post = await this.findOne(postId);
-    
+
     post.isApproved = true;
-    
+
     await this.postRepository.save(post);
-    
+
     return post;
   }
 
@@ -48,14 +51,14 @@ export class PostService {
     const page = query.page > 0 ? query.page : 1;
     const limit = query.limit > 0 ? query.limit : 10;
     const offset = (page - 1) * limit;
-  
+
     const queryBuilder = this.postRepository.createQueryBuilder('post')
       .leftJoinAndSelect('post.author', 'author');
-  
+
     if (query.isApprove !== undefined) {
       queryBuilder.andWhere('post.isApproved = :isApproved', { isApproved: query.isApprove });
     }
-  
+
     if (query.search) {
       const searchQuery = `%${query.search.toLowerCase()}%`;
       queryBuilder.andWhere('(LOWER(post.title) LIKE :search OR LOWER(author.email) LIKE :search)', { search: searchQuery });
@@ -63,14 +66,14 @@ export class PostService {
     queryBuilder.loadRelationCountAndMap('post.commentCount', 'post.comments');
 
     queryBuilder.orderBy('post.createdAt', 'DESC');
-  
+
     queryBuilder.skip(offset).take(limit);
-  
+
     const [posts, totalItems] = await queryBuilder.getManyAndCount();
-  
+
     const totalPages = Math.ceil(totalItems / limit);
     const currentPage = page;
-  
+
     return {
       posts,
       meta: {
