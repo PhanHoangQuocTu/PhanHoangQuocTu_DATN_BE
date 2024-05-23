@@ -53,6 +53,7 @@ export class PostService {
     const offset = (page - 1) * limit;
 
     const queryBuilder = this.postRepository.createQueryBuilder('post')
+      .where('post.deletedAt IS NULL')
       .leftJoinAndSelect('post.author', 'author');
 
     if (query.isApprove !== undefined) {
@@ -96,13 +97,13 @@ export class PostService {
     const result = await this.postRepository.softDelete(id);
 
     if (result.affected === 0) {
-      throw new NotFoundException(`Post with ID "${id}" not found`);
+      throw new NotFoundException('Post not found or already deleted');
     }
 
     return {
-      message: `Post with ID "${id}" deleted successfully`,
+      message: 'Post deleted successfully',
       code: 200,
-    }
+    };
   }
 
   async findAllPostsByUser(userId: number, query: FindAllPostByMeParams): Promise<{ posts: PostEntity[]; meta: { limit: number; totalItems: number; totalPages: number; currentPage: number; } }> {

@@ -19,33 +19,33 @@ export class CommentController {
   @ApiQuery({ name: 'page', type: Number, required: false })
   @ApiQuery({ name: 'postId', type: Number, required: false })
   @Get('by-post/:postId')
-  getCommentsByPost(
+  async getCommentsByPost(
     @Query() query: GetCommentByPostIdParams,
   ) {
-    return this.commentService.getCommentsByPost(+query.postId, query);
+    return await this.commentService.getCommentsByPost(+query.postId, query);
   }
 
   @ApiBearerAuth('JWT-auth')
   @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN, Roles.USER]))
   @Patch(':id')
-  updateComment(
+  async updateComment(
     @Param('id') id: string,
     @Body() updateCommentDto: UpdateCommentDto
   ) {
-    return this.commentService.updateComment(+id, updateCommentDto);
+    return await this.commentService.updateComment(+id, updateCommentDto);
   }
 
   @ApiBearerAuth('JWT-auth')
   @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN, Roles.USER]))
   @Delete(':id')
-  softDeleteComment(@Param('id') id: string) {
-    return this.commentService.softDeleteComment(+id);
+  async softDeleteComment(@Param('id') id: string) {
+    return await this.commentService.softDeleteComment(+id);
   }
 
   @ApiBearerAuth('JWT-auth')
   @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN, Roles.USER]))
   @Post('comment/:id')
-  comment(@Body() createCommentDto: CreateCommentDto, @CurrentUser() currentUser: UserEntity) {
-    return this.commentService.addComment(+currentUser.id, createCommentDto);
+  async comment(@Body() createCommentDto: CreateCommentDto, @CurrentUser() currentUser: UserEntity) {
+    return await this.commentService.addComment(+currentUser.id, createCommentDto);
   }
 }

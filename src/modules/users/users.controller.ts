@@ -21,6 +21,11 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 export class UsersController {
   constructor(private readonly usersService: UsersService) { }
 
+  @Get('/new-users-count-per-day')
+  async getNewUsersCountPerDay(@Query('days') days: number = 15): Promise<{ date: string, count: number }[]> {
+    return await this.usersService.countNewUsersForEachDay(days);
+  }
+
   @ApiBearerAuth('JWT-auth')
   @UseGuards(AuthenticationGuard)
   @Get('me')

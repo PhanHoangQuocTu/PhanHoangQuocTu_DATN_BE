@@ -22,6 +22,32 @@ export class UsersService {
     private mailerService: MailerService,
   ) { }
 
+  async countNewUsersForEachDay(days: number): Promise<{ date: string, count: number }[]> {
+    const countsByDate = [];
+  
+    for (let day = days - 1; day >= 0; day--) {
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+      startOfDay.setDate(startOfDay.getDate() - day);
+      
+      const endOfDay = new Date();
+      endOfDay.setHours(23, 59, 59, 999);
+      endOfDay.setDate(endOfDay.getDate() - day);
+  
+      const count = await this.usersRepository.createQueryBuilder('user')
+        .where('user.createdAt >= :startOfDay', { startOfDay })
+        .andWhere('user.createdAt <= :endOfDay', { endOfDay })
+        .getCount();
+  
+      countsByDate.push({
+        date: startOfDay.toISOString().split('T')[0], // Format the date as 'YYYY-MM-DD'
+        count,
+      });
+    }
+  
+    return countsByDate;
+  }
+
   async findAll(query: FindAllUserParamsDto): Promise<{ users: UserEntity[]; meta: { limit: number; totalItems: number; totalPages: number; currentPage: number; } }> {
     const page = query.page > 0 ? query.page : 1;
     const limit = query.limit > 0 ? query.limit : 10;

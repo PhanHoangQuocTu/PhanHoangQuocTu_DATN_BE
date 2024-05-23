@@ -24,6 +24,7 @@ export class CommentService {
 
     const queryBuilder = this.commentRepository.createQueryBuilder('comment')
       .leftJoinAndSelect('comment.author', 'author')
+      .where('comment.deletedAt IS NULL')
       .where('comment.postId = :postId', { postId })
       .orderBy('comment.createdAt', 'DESC')
       .take(limit)
@@ -61,11 +62,17 @@ export class CommentService {
     return comment;
   }
 
-  async softDeleteComment(id: number): Promise<void> {
+  async softDeleteComment(id: number): Promise<{ message: string; code: number }> {
     const result = await this.commentRepository.softDelete(id);
+
     if (result.affected === 0) {
-      throw new NotFoundException(`Comment with ID "${id}" not found`);
+      throw new NotFoundException('Post not found or already deleted');
     }
+
+    return {
+      message: 'Post deleted successfully',
+      code: 200,
+    };
   }
 
   async addComment(userId: number, createCommentDto: CreateCommentDto): Promise<CommentEntity> {
