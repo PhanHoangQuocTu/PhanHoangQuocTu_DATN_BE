@@ -6,12 +6,16 @@ import { Repository } from 'typeorm';
 import { FindAllPostParams } from './dto/get-all-post-params.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { FindAllPostByMeParams } from './dto/get-all-post-by-me-params.dto';
+import { LikeEntity } from 'src/entities/like.entity';
 
 @Injectable()
 export class PostService {
   constructor(
     @InjectRepository(PostEntity)
     private postRepository: Repository<PostEntity>,
+
+    @InjectRepository(LikeEntity)
+    private likeRepository: Repository<LikeEntity>,
   ) { }
 
   async findOne(postId: number): Promise<PostEntity> {
@@ -27,6 +31,38 @@ export class PostService {
     return post;
   }
 
+  async toggleLike(userId: number, postId: number): Promise<{ data: PostEntity; code: number }> {
+    console.log("🚀 ~ PostService ~ toggleLike ~ postId:", postId)
+    const checkId = Number.isNaN(Number(postId));
+
+    if (checkId) {
+      throw new NotFoundException('Post not found');
+    }
+
+    const post = await this.findOne(Number(postId));
+
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+
+    const existingLike = await this.likeRepository.findOne({ where: { post: { id: +postId }, user: { id: +userId } } });
+
+    if (existingLike) {
+      await this.likeRepository.delete({ id: existingLike.id });
+      post.likeCount--;
+    } else {
+      const newLike = this.likeRepository.create({ user: { id: userId }, post: { id: postId } });
+      await this.likeRepository.save(newLike);
+      post.likeCount++;
+    }
+
+    await this.postRepository.save(post);
+
+    return {
+      data: post,
+      code: 200,
+    };
+  }
 
   async create(userId: number, createPostDto: CreatePostDto): Promise<PostEntity> {
     const post = this.postRepository.create({ ...createPostDto, author: { id: userId } });
@@ -47,14 +83,16 @@ export class PostService {
     return post;
   }
 
-  async findAllPosts(query: FindAllPostParams): Promise<{ posts: PostEntity[]; meta: { limit: number; totalItems: number; totalPages: number; currentPage: number; } }> {
+  async findAllPosts(query: FindAllPostParams): Promise<{ posts: PostEntity[]; meta: { limit: number; totalItems: number; totalPages: number; currentPage: number; }, likesInfo: any[] }> {
     const page = query.page > 0 ? query.page : 1;
     const limit = query.limit > 0 ? query.limit : 10;
     const offset = (page - 1) * limit;
 
     const queryBuilder = this.postRepository.createQueryBuilder('post')
       .where('post.deletedAt IS NULL')
-      .leftJoinAndSelect('post.author', 'author');
+      .leftJoinAndSelect('post.author', 'author')
+      .leftJoinAndSelect('post.likes', 'likes')
+      .leftJoinAndSelect('likes.user', 'likeUser');
 
     if (query.isApprove !== undefined) {
       queryBuilder.andWhere('post.isApproved = :isApproved', { isApproved: query.isApprove });
@@ -64,6 +102,7 @@ export class PostService {
       const searchQuery = `%${query.search.toLowerCase()}%`;
       queryBuilder.andWhere('(LOWER(post.title) LIKE :search OR LOWER(author.email) LIKE :search)', { search: searchQuery });
     }
+
     queryBuilder.loadRelationCountAndMap('post.commentCount', 'post.comments');
 
     queryBuilder.orderBy('post.createdAt', 'DESC');
@@ -71,6 +110,15 @@ export class PostService {
     queryBuilder.skip(offset).take(limit);
 
     const [posts, totalItems] = await queryBuilder.getManyAndCount();
+
+    // Tạo danh sách các người dùng đã like bài post
+    const likesInfo = posts.map(post => ({
+      postId: post.id,
+      likes: post.likes.map(like => ({
+        userId: like.user.id,
+        userName: like.user.firstName + ' ' + like.user.lastName
+      }))
+    }));
 
     const totalPages = Math.ceil(totalItems / limit);
     const currentPage = page;
@@ -83,6 +131,7 @@ export class PostService {
         totalPages,
         currentPage,
       },
+      likesInfo
     };
   }
 
@@ -140,4 +189,6 @@ export class PostService {
       },
     };
   }
+
+
 }

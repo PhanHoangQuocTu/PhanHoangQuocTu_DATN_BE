@@ -5,9 +5,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { PostEntity } from 'src/entities/post.entity';
 import { UsersModule } from '../users/users.module';
 import { CommentModule } from '../comment/comment.module';
+import { LikeEntity } from 'src/entities/like.entity';
+import { LikesModule } from '../likes/likes.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([PostEntity]), UsersModule, CommentModule],
+  imports: [TypeOrmModule.forFeature([PostEntity, LikeEntity]), UsersModule, CommentModule, LikesModule],
   controllers: [PostController],
   providers: [PostService],
   exports: [PostService],

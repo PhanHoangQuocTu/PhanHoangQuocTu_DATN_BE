@@ -9,6 +9,7 @@ import { AuthorEntity } from "./author.entity";
 import { PublisherEntity } from "./publisher.entity";
 import { PostEntity } from "./post.entity";
 import { CommentEntity } from "./comment.entity";
+import { LikeEntity } from "./like.entity";
 
 @Entity({ name: "users" })
 export class UserEntity {
@@ -86,4 +87,7 @@ export class UserEntity {
 
     @OneToMany(() => CommentEntity, comment => comment.author)
     comments: CommentEntity[];
+
+    @OneToMany(() => LikeEntity, like => like.user)
+    likes: LikeEntity[];
 }

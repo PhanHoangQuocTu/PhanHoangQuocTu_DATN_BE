@@ -15,6 +15,7 @@ import { PublisherModule } from './modules/publisher/publisher.module';
 import { MailModule } from './mail/mail.module';
 import { PostModule } from './modules/post/post.module';
 import { CommentModule } from './modules/comment/comment.module';
+import { LikesModule } from './modules/likes/likes.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { CommentModule } from './modules/comment/comment.module';
     PublisherModule,
     PostModule,
     CommentModule,
+    LikesModule,
   ],
   controllers: [],
   providers: [],

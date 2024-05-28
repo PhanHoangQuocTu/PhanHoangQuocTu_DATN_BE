@@ -19,6 +19,13 @@ export class PostController {
 
   @ApiBearerAuth('JWT-auth')
   @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN, Roles.USER]))
+  @Post('like/:id')
+  async toggleLike(@Param('id') id: number, @CurrentUser() CurrentUser: UserEntity): Promise<{ data: PostEntity; code: number }> {
+    return await this.postService.toggleLike(+CurrentUser.id, +id);
+  }
+
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN, Roles.USER]))
   @ApiQuery({ name: 'limit', type: Number, required: false })
   @ApiQuery({ name: 'page', type: Number, required: false })
   @ApiQuery({ name: 'search', type: String, required: false })
@@ -38,6 +45,7 @@ export class PostController {
   async create(@Body() createPostDto: CreatePostDto, @CurrentUser() currentUser: UserEntity): Promise<PostEntity> {
     return await this.postService.create(+currentUser.id, createPostDto);
   }
+
 
   @ApiBearerAuth('JWT-auth')
   @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN]))
@@ -68,5 +76,4 @@ export class PostController {
   async softDeletePost(@Param('id') id: string): Promise<{ message: string; code: number }> {
     return await this.postService.softDeletePost(+id);
   }
-
 }

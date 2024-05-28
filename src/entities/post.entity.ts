@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, CreateDateColumn, UpdateDateColumn, DeleteDateColumn } from 'typeorm';
 import { UserEntity } from './user.entity';
 import { CommentEntity } from './comment.entity';
+import { LikeEntity } from './like.entity';
 
 @Entity({ name: 'posts' })
 export class PostEntity {
@@ -36,4 +37,10 @@ export class PostEntity {
 
   @DeleteDateColumn({ type: 'timestamp', nullable: true })
   deletedAt?: Date;
+
+  @OneToMany(() => LikeEntity, like => like.post)
+  likes: LikeEntity[];
+
+  @Column({ type: 'int', default: 0 })
+  likeCount: number;
 }
