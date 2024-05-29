@@ -21,7 +21,7 @@ export class PostService {
   async findOne(postId: number): Promise<PostEntity> {
     const post = await this.postRepository.findOne({
       where: { id: postId },
-      relations: ['author'],
+      relations: ['author', "likes", "likes.user"],
     });
 
     if (!post) {
@@ -32,34 +32,36 @@ export class PostService {
   }
 
   async toggleLike(userId: number, postId: number): Promise<{ data: PostEntity; code: number }> {
-    console.log("🚀 ~ PostService ~ toggleLike ~ postId:", postId)
-    const checkId = Number.isNaN(Number(postId));
-
-    if (checkId) {
-      throw new NotFoundException('Post not found');
-    }
-
-    const post = await this.findOne(Number(postId));
-
+    const post = await this.postRepository.findOne({ where: { id: Number(postId) } });
     if (!post) {
       throw new NotFoundException('Post not found');
     }
 
-    const existingLike = await this.likeRepository.findOne({ where: { post: { id: +postId }, user: { id: +userId } } });
+    const existingLike = await this.likeRepository.findOne({ where: { post: { id: postId }, user: { id: userId } } });
 
     if (existingLike) {
       await this.likeRepository.delete({ id: existingLike.id });
-      post.likeCount--;
+      await this.postRepository
+        .createQueryBuilder()
+        .update(PostEntity)
+        .set({ likeCount: () => "likeCount - 1" })
+        .where("id = :id", { id: postId })
+        .execute();
     } else {
       const newLike = this.likeRepository.create({ user: { id: userId }, post: { id: postId } });
       await this.likeRepository.save(newLike);
-      post.likeCount++;
+      await this.postRepository
+        .createQueryBuilder()
+        .update(PostEntity)
+        .set({ likeCount: () => "likeCount + 1" })
+        .where("id = :id", { id: postId })
+        .execute();
     }
 
-    await this.postRepository.save(post);
+    const updatedPost = await this.postRepository.findOne({ where: { id: Number(postId) } });
 
     return {
-      data: post,
+      data: updatedPost,
       code: 200,
     };
   }
@@ -111,7 +113,6 @@ export class PostService {
 
     const [posts, totalItems] = await queryBuilder.getManyAndCount();
 
-    // Tạo danh sách các người dùng đã like bài post
     const likesInfo = posts.map(post => ({
       postId: post.id,
       likes: post.likes.map(like => ({
