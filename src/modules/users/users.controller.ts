@@ -1,8 +1,6 @@
-// import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
 import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 
-// import { UpdateUserDto } from './dto/update-user.dto';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserEntity } from 'src/entities/user.entity';
@@ -14,7 +12,7 @@ import { IStatusResponse } from 'src/utils/common';
 import { ActiveAccountDto } from './dto/active-account.dto';
 import { FindAllUserParamsDto } from './dto/find-all-user-params.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
-// import { AuthorizeRoles } from 'src/utils/decorators/authorize-roles.decorator';
+import { ChangeRoleDto } from './dto/change-role.dto';
 
 @ApiTags('User')
 @Controller('user')
@@ -116,8 +114,24 @@ export class UsersController {
     }
   }
 
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.USER, Roles.ADMIN]))
   @Patch('/restore/:id')
   async restoreUser(@Param('id') id: number) {
     return this.usersService.restoreUser(id);
+  }
+
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.USER, Roles.ADMIN]))
+  @Patch(':id/add-role')
+  async addRole(@Param('id') id: number, @Body() changeRoleDto: ChangeRoleDto) {
+    return this.usersService.addRoleToUser(id, changeRoleDto.role);
+  }
+
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.USER, Roles.ADMIN]))
+  @Patch(':id/remove-role')
+  async removeRole(@Param('id') id: number, @Body() changeRoleDto: ChangeRoleDto) {
+    return this.usersService.removeRoleFromUser(id, changeRoleDto.role);
   }
 }

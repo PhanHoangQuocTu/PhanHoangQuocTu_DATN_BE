@@ -304,4 +304,36 @@ export class UsersService {
       message: 'User restored successfully',
     };
   }
+
+  async addRoleToUser(userId: number, role: Roles): Promise<UserEntity> {
+    const user = await this.usersRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    if (!user.roles.includes(role)) {
+      user.roles.push(role);
+      await this.usersRepository.save(user);
+    }
+
+    return user;
+  }
+
+  async removeRoleFromUser(userId: number, role: Roles): Promise<UserEntity> {
+    const user = await this.usersRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    user.roles = user.roles.filter(r => r !== role);
+    await this.usersRepository.save(user);
+
+    return user;
+  }
 }
