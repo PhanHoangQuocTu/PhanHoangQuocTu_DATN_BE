@@ -12,6 +12,7 @@ import { Roles } from 'src/utils/common/user-roles.enum';
 import { FindAllUserParamsDto } from './dto/find-all-user-params.dto';
 import * as bcrypt from 'bcrypt';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { FindAdminUsersDto } from './dto/find-all-admin-params.dto';
 
 @Injectable()
 export class UsersService {
@@ -24,27 +25,27 @@ export class UsersService {
 
   async countNewUsersForEachDay(days: number): Promise<{ date: string, count: number }[]> {
     const countsByDate = [];
-  
+
     for (let day = days - 1; day >= 0; day--) {
       const startOfDay = new Date();
       startOfDay.setHours(0, 0, 0, 0);
       startOfDay.setDate(startOfDay.getDate() - day);
-      
+
       const endOfDay = new Date();
       endOfDay.setHours(23, 59, 59, 999);
       endOfDay.setDate(endOfDay.getDate() - day);
-  
+
       const count = await this.usersRepository.createQueryBuilder('user')
         .where('user.createdAt >= :startOfDay', { startOfDay })
         .andWhere('user.createdAt <= :endOfDay', { endOfDay })
         .getCount();
-  
+
       countsByDate.push({
         date: startOfDay.toISOString().split('T')[0], // Format the date as 'YYYY-MM-DD'
         count,
       });
     }
-  
+
     return countsByDate;
   }
 
@@ -52,26 +53,27 @@ export class UsersService {
     const page = query.page > 0 ? query.page : 1;
     const limit = query.limit > 0 ? query.limit : 10;
     const offset = (page - 1) * limit;
-  
+
     const queryBuilder = this.usersRepository.createQueryBuilder('user')
+      .withDeleted()
       .where('user.deletedAt IS NOT NULL');
-  
+
     if (query.search) {
       const searchQuery = `%${query.search.toLowerCase()}%`;
       queryBuilder.andWhere('(LOWER(user.firstName) LIKE :search OR LOWER(user.lastName) LIKE :search OR LOWER(user.email) LIKE :search)', { search: searchQuery });
     }
-  
+
     if (query.isActive !== undefined) {
       queryBuilder.andWhere('user.isActice = :isActive', { isActive: query.isActive });
     }
-  
+
     queryBuilder.skip(offset).take(limit);
-  
+
     const [users, totalItems] = await queryBuilder.getManyAndCount();
-  
+
     const totalPages = Math.ceil(totalItems / limit);
     const currentPage = page;
-  
+
     return {
       users,
       meta: {
@@ -97,6 +99,42 @@ export class UsersService {
 
     if (query.isActive !== undefined) {
       queryBuilder.andWhere('user.isActice = :isActive', { isActive: query.isActive });
+    }
+
+    queryBuilder.skip(offset).take(limit);
+
+    const [users, totalItems] = await queryBuilder.getManyAndCount();
+
+    const totalPages = Math.ceil(totalItems / limit);
+    const currentPage = page;
+
+    return {
+      users,
+      meta: {
+        limit,
+        totalItems,
+        totalPages,
+        currentPage,
+      },
+    };
+  }
+
+  async findAdminUsers(query: FindAdminUsersDto): Promise<{ users: UserEntity[]; meta: { limit: number; totalItems: number; totalPages: number; currentPage: number; } }> {
+    const page = query.page > 0 ? query.page : 1;
+    const limit = query.limit > 0 ? query.limit : 10;
+    const offset = (page - 1) * limit;
+
+    const queryBuilder = this.usersRepository.createQueryBuilder('user')
+      .where(':role = ANY(user.roles)', { role: Roles.ADMIN })
+      .andWhere('user.deletedAt IS NULL');
+
+    if (query.search) {
+      const searchQuery = `%${query.search.toLowerCase()}%`;
+      queryBuilder.where('(LOWER(user.firstName) LIKE :search OR LOWER(user.lastName) LIKE :search OR LOWER(user.email) LIKE :search)', { search: searchQuery });
+    }
+
+    if (query.isActive !== undefined) {
+      queryBuilder.andWhere('user.isActive = :isActive', { isActive: query.isActive });
     }
 
     queryBuilder.skip(offset).take(limit);
@@ -289,16 +327,16 @@ export class UsersService {
     const user = await this.usersRepository.findOne({
       where: { id, deletedAt: Not(IsNull()) }
     });
-  
+
     if (!user) {
       throw new NotFoundException('Deleted user not found');
     }
-  
+
     await this.usersRepository.save({
       ...user,
       deletedAt: null
     });
-  
+
     return {
       status: 200,
       message: 'User restored successfully',

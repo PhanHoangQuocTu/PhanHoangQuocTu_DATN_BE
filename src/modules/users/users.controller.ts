@@ -13,19 +13,22 @@ import { ActiveAccountDto } from './dto/active-account.dto';
 import { FindAllUserParamsDto } from './dto/find-all-user-params.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ChangeRoleDto } from './dto/change-role.dto';
+import { FindAdminUsersDto } from './dto/find-all-admin-params.dto';
 
 @ApiTags('User')
 @Controller('user')
 export class UsersController {
   constructor(private readonly usersService: UsersService) { }
 
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN]))
   @Get('/new-users-count-per-day')
   async getNewUsersCountPerDay(@Query('days') days: number = 15): Promise<{ date: string, count: number }[]> {
     return await this.usersService.countNewUsersForEachDay(days);
   }
 
   @ApiBearerAuth('JWT-auth')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN, Roles.USER]))
   @Get('me')
   me(@CurrentUser() currentUser: UserEntity) {
     return currentUser
@@ -49,6 +52,17 @@ export class UsersController {
     @Query() query: FindAllUserParamsDto
   ): Promise<{ users: UserEntity[]; meta: { limit: number; totalItems: number; totalPages: number; currentPage: number; } }> {
     return await this.usersService.findAll(query);
+  }
+
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN]))
+  @ApiQuery({ name: 'search', type: String, required: false },)
+  @ApiQuery({ name: 'limit', type: Number, required: false },)
+  @ApiQuery({ name: 'page', type: Number, required: false })
+  @ApiQuery({ name: 'isActive', type: Boolean, required: false })
+  @Get('/admins')
+  async getAdminUsers(@Query() query: FindAdminUsersDto) {
+    return this.usersService.findAdminUsers(query);
   }
 
   @ApiBearerAuth('JWT-auth')
