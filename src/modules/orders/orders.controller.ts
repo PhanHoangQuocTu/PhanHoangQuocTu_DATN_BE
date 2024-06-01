@@ -20,13 +20,6 @@ import { VnpayReturnParams } from './dto/vnpay_return-params.dto';
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) { }
-  private getIp(req: Request): string {
-    return (
-      req?.headers['x-forwarded-for'] ||
-      req?.connection?.remoteAddress ||
-      req?.socket?.remoteAddress
-    ) as string;
-  }
 
   @ApiBearerAuth('JWT-auth')
   @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN]))
@@ -97,7 +90,7 @@ export class OrdersController {
   ) {
     try {
       const ipAddr = this.getIp(req);
-      const checkoutData = this.ordersService.createCheckoutVnpay(createVnpayDto, ipAddr, returnUrlLocal);
+      const checkoutData = await this.ordersService.createCheckoutVnpay(createVnpayDto, ipAddr, returnUrlLocal);
       return {
         url: checkoutData
       };
@@ -122,5 +115,13 @@ export class OrdersController {
   @Put('cancel/:id')
   async cancel(@Param('id') id: string, @CurrentUser() currentUser: UserEntity) {
     return await this.ordersService.cancel(+id, currentUser);
+  }
+
+  private getIp(req: Request): string {
+    return (
+      req?.headers['x-forwarded-for'] ||
+      req?.connection?.remoteAddress ||
+      req?.socket?.remoteAddress
+    ) as string;
   }
 }

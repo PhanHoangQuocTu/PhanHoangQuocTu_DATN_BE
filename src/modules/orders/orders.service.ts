@@ -255,6 +255,7 @@ export class OrdersService {
     const tmnCode = env.VNPAY_TMN_CODE;
     const createDate = moment().format('YYYYMMDDHHmmss');
     const orderId = moment().format('DDHHmmss');
+
     const vnpay = new VNPay({
       tmnCode: tmnCode,
       secureSecret: secretKey,
