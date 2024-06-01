@@ -21,7 +21,7 @@ export class ReviewsController {
 
 
   @ApiBearerAuth('JWT-auth')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN, Roles.USER]))
   @Post()
   async create(
     @Body() createReviewDto: CreateReviewDto,
@@ -49,7 +49,7 @@ export class ReviewsController {
 
   @ApiBearerAuth('JWT-auth')
   @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN]))
-  @Get(':id')
+  @Get(':id/review')
   async findOne(@Param('id') id: string): Promise<ReviewEntity> {
     return await this.reviewsService.findOne(+id);
   }

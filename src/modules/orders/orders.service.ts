@@ -227,17 +227,13 @@ export class OrdersService {
     return order;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} order`;
-  }
-
   async stockUpdate(order: OrderEntity, status: string): Promise<void> {
     for (const orderProduct of order.products) {
       await this.productService.updateStock(orderProduct.product.id, orderProduct.product_quantity, status);
     }
   }
 
-  sortObject(obj: any) {
+  async sortObject(obj: any) {
     const sorted = {};
     const str = [];
     let key;
@@ -254,7 +250,7 @@ export class OrdersService {
   }
 
 
-  createCheckoutVnpay(createVnpayDto: CreateVnpayDto, ip: string, returnUrlLocal: string): any {
+  async createCheckoutVnpay(createVnpayDto: CreateVnpayDto, ip: string, returnUrlLocal: string): Promise<string> {
     const secretKey = env.VNPAY_HASH_SECRET;
     const tmnCode = env.VNPAY_TMN_CODE;
     const createDate = moment().format('YYYYMMDDHHmmss');
@@ -354,7 +350,7 @@ export class OrdersService {
       .where('order.status = :status', { status: 'delivered' })
       .getRawMany();
 
-    const monthlyRevenueData = this.calculateMonthlyRevenue(deliveredOrdersRaw);
+    const monthlyRevenueData = await this.calculateMonthlyRevenue(deliveredOrdersRaw);
 
     const totalItems = monthlyRevenueData.length;
     const totalPages = Math.ceil(totalItems / limit);
@@ -371,7 +367,7 @@ export class OrdersService {
     };
   }
 
-  private calculateMonthlyRevenue(deliveredOrders: any[]): MonthlyRevenueResult[] {
+  async calculateMonthlyRevenue(deliveredOrders: any[]): Promise<MonthlyRevenueResult[]> {
     const monthlyRevenue = deliveredOrders.reduce((acc, current) => {
       const month = current.month;
       const unitPrice = Number(current.orderProduct_product_unit_price) || 0;
@@ -395,5 +391,54 @@ export class OrdersService {
     const startIndex = (page - 1) * limit;
     const endIndex = page * limit;
     return monthlyRevenueData.slice(startIndex, endIndex);
+  }
+
+  async getRevenue(): Promise<MonthlyRevenueResponse> {
+    const startDate = moment().subtract(15, 'days').startOf('day').toDate();
+
+    const deliveredOrdersRaw = await this.orderRepository
+      .createQueryBuilder('order')
+      .select([
+        "TO_CHAR(order.deliveredAt, 'YYYY-MM-DD') AS date",
+        'orderProduct.product_unit_price',
+        'orderProduct.discount',
+        'orderProduct.product_quantity'
+      ])
+      .leftJoin('order.products', 'orderProduct')
+      .where('order.status = :status', { status: 'delivered' })
+      .andWhere('order.deliveredAt >= :startDate', { startDate })
+      .getRawMany();
+
+    const dailyRevenueData = await this.calculateDailyRevenue(deliveredOrdersRaw);
+
+    return {
+      data: dailyRevenueData,
+      meta: {
+        totalItems: dailyRevenueData.length,
+        totalPages: 1,
+        currentPage: 1,
+        limit: dailyRevenueData.length,
+      }
+    };
+  }
+
+  async calculateDailyRevenue(deliveredOrders: any[]): Promise<MonthlyRevenueResult[]> {
+    const dailyRevenue = deliveredOrders.reduce((acc, current) => {
+      const date = current.date;
+      const unitPrice = Number(current.orderProduct_product_unit_price) || 0;
+      const discount = Number(current.orderProduct_discount) || 0;
+      const quantity = Number(current.orderProduct_product_quantity) || 0;
+
+      const totalPrice = (unitPrice * (1 - discount / 100)) * quantity;
+
+      if (!acc[date]) {
+        acc[date] = { date, totalRevenue: 0 };
+      }
+      acc[date].totalRevenue += totalPrice;
+
+      return acc;
+    }, {});
+
+    return Object.values(dailyRevenue);
   }
 }

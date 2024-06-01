@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 // import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Not, Repository } from 'typeorm';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserEntity } from 'src/entities/user.entity';
 import { IStatusResponse } from 'src/utils/common';
@@ -46,6 +46,41 @@ export class UsersService {
     }
   
     return countsByDate;
+  }
+
+  async findDeletedUsers(query: FindAllUserParamsDto): Promise<{ users: UserEntity[]; meta: { limit: number; totalItems: number; totalPages: number; currentPage: number; } }> {
+    const page = query.page > 0 ? query.page : 1;
+    const limit = query.limit > 0 ? query.limit : 10;
+    const offset = (page - 1) * limit;
+  
+    const queryBuilder = this.usersRepository.createQueryBuilder('user')
+      .where('user.deletedAt IS NOT NULL');
+  
+    if (query.search) {
+      const searchQuery = `%${query.search.toLowerCase()}%`;
+      queryBuilder.andWhere('(LOWER(user.firstName) LIKE :search OR LOWER(user.lastName) LIKE :search OR LOWER(user.email) LIKE :search)', { search: searchQuery });
+    }
+  
+    if (query.isActive !== undefined) {
+      queryBuilder.andWhere('user.isActice = :isActive', { isActive: query.isActive });
+    }
+  
+    queryBuilder.skip(offset).take(limit);
+  
+    const [users, totalItems] = await queryBuilder.getManyAndCount();
+  
+    const totalPages = Math.ceil(totalItems / limit);
+    const currentPage = page;
+  
+    return {
+      users,
+      meta: {
+        limit,
+        totalItems,
+        totalPages,
+        currentPage,
+      },
+    };
   }
 
   async findAll(query: FindAllUserParamsDto): Promise<{ users: UserEntity[]; meta: { limit: number; totalItems: number; totalPages: number; currentPage: number; } }> {
@@ -177,6 +212,15 @@ export class UsersService {
     user.deletedAt = new Date();
     await this.usersRepository.save(user);
 
+    await this.mailerService.sendMail({
+      to: user?.email,
+      subject: 'Block Account',
+      template: './block-account',
+      context: {
+        email: user?.email,
+      },
+    });
+
     return {
       status: 200,
       message: 'User deleted successfully',
@@ -239,5 +283,25 @@ export class UsersService {
     const isAdmin = currentUser.roles.includes(Roles.ADMIN);
 
     return { data: isAdmin }
+  }
+
+  async restoreUser(id: number): Promise<IStatusResponse> {
+    const user = await this.usersRepository.findOne({
+      where: { id, deletedAt: Not(IsNull()) }
+    });
+  
+    if (!user) {
+      throw new NotFoundException('Deleted user not found');
+    }
+  
+    await this.usersRepository.save({
+      ...user,
+      deletedAt: null
+    });
+  
+    return {
+      status: 200,
+      message: 'User restored successfully',
+    };
   }
 }

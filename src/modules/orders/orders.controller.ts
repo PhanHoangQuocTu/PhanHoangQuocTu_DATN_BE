@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Delete, UseGuards, Put, Query, Req, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Put, Query, Req, BadRequestException } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
@@ -20,12 +20,26 @@ import { VnpayReturnParams } from './dto/vnpay_return-params.dto';
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) { }
+  private getIp(req: Request): string {
+    return (
+      req?.headers['x-forwarded-for'] ||
+      req?.connection?.remoteAddress ||
+      req?.socket?.remoteAddress
+    ) as string;
+  }
 
   @ApiBearerAuth('JWT-auth')
   @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN]))
   @Get('/monthly-revenue')
   async getMonthlyRevenueAPI(@Query() query: MonthlyRevenueParamsDto) {
     return await this.ordersService.getMonthlyRevenue(query);
+  }
+
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN]))
+  @Get('/daily-revenue')
+  async getDailyMonthly() {
+    return await this.ordersService.getRevenue();
   }
 
   @ApiQuery({ name: 'orderId', type: String, required: false },)
@@ -37,13 +51,6 @@ export class OrdersController {
   @Get('return_url')
   async returnUrl(@Query() vnp_Params: VnpayReturnParams) {
     return await this.ordersService.verifyReturn(vnp_Params);
-  }
-
-  @ApiBearerAuth('JWT-auth')
-  @UseGuards(AuthenticationGuard)
-  @Post()
-  async create(@Body() createOrderDto: CreateOrderDto, @CurrentUser() currentUser: UserEntity): Promise<OrderEntity> {
-    return await this.ordersService.create(createOrderDto, currentUser);
   }
 
   @ApiBearerAuth('JWT-auth')
@@ -64,31 +71,20 @@ export class OrdersController {
     return await this.ordersService.findOne(+id);
   }
 
-
-
+  @ApiQuery({ name: 'limit', type: Number, required: false },)
+  @ApiQuery({ name: 'page', type: Number, required: false })
   @ApiBearerAuth('JWT-auth')
-  @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN]))
-  @Put(':id')
-  async update(
-    @Param('id') id: string,
-    @Body() updateOrderStatusDto: UpdateOrderStatusDto,
-    @CurrentUser() currentUser: UserEntity
-  ) {
-    return await this.ordersService.update(+id, updateOrderStatusDto, currentUser);
+  @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN, Roles.USER]))
+  @Get('/user/me')
+  async findOrdersByUser(@CurrentUser() currentUser: UserEntity, @Query() query: OrderMeParamsDto) {
+    return await this.ordersService.findOrdersByUser(currentUser.id, query);
   }
 
   @ApiBearerAuth('JWT-auth')
-  @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN, Roles.USER]))
-  @Put('cancel/:id')
-  async cancel(@Param('id') id: string, @CurrentUser() currentUser: UserEntity) {
-    return await this.ordersService.cancel(+id, currentUser);
-  }
-
-  @ApiBearerAuth('JWT-auth')
-  @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN, Roles.USER]))
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.ordersService.remove(+id);
+  @UseGuards(AuthenticationGuard)
+  @Post()
+  async create(@Body() createOrderDto: CreateOrderDto, @CurrentUser() currentUser: UserEntity): Promise<OrderEntity> {
+    return await this.ordersService.create(createOrderDto, currentUser);
   }
 
   @ApiBearerAuth('JWT-auth')
@@ -110,20 +106,21 @@ export class OrdersController {
     }
   }
 
-  @ApiQuery({ name: 'limit', type: Number, required: false },)
-  @ApiQuery({ name: 'page', type: Number, required: false })
   @ApiBearerAuth('JWT-auth')
-  @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN, Roles.USER]))
-  @Get('/user/me')
-  async findOrdersByUser(@CurrentUser() currentUser: UserEntity, @Query() query: OrderMeParamsDto) {
-    return await this.ordersService.findOrdersByUser(currentUser.id, query);
+  @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN]))
+  @Put(':id')
+  async update(
+    @Param('id') id: string,
+    @Body() updateOrderStatusDto: UpdateOrderStatusDto,
+    @CurrentUser() currentUser: UserEntity
+  ) {
+    return await this.ordersService.update(+id, updateOrderStatusDto, currentUser);
   }
 
-  private getIp(req: Request): string {
-    return (
-      req?.headers['x-forwarded-for'] ||
-      req?.connection?.remoteAddress ||
-      req?.socket?.remoteAddress
-    ) as string;
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN, Roles.USER]))
+  @Put('cancel/:id')
+  async cancel(@Param('id') id: string, @CurrentUser() currentUser: UserEntity) {
+    return await this.ordersService.cancel(+id, currentUser);
   }
 }

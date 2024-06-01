@@ -53,6 +53,17 @@ export class UsersController {
     return await this.usersService.findAll(query);
   }
 
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN]))
+  @ApiQuery({ name: 'search', type: String, required: false },)
+  @ApiQuery({ name: 'limit', type: Number, required: false },)
+  @ApiQuery({ name: 'page', type: Number, required: false })
+  @ApiQuery({ name: 'isActive', type: Boolean, required: false })
+  @Get('/deleted')
+  async findDeletedUsers(@Query() query: FindAllUserParamsDto) {
+    return this.usersService.findDeletedUsers(query);
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<UserEntity> {
     return await this.usersService.findOne(+id);
@@ -103,5 +114,10 @@ export class UsersController {
     } catch (error) {
       throw new BadRequestException(error.message);
     }
+  }
+
+  @Patch('/restore/:id')
+  async restoreUser(@Param('id') id: number) {
+    return this.usersService.restoreUser(id);
   }
 }
