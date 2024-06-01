@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 // import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Not, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserEntity } from 'src/entities/user.entity';
 import { IStatusResponse } from 'src/utils/common';
@@ -324,9 +324,11 @@ export class UsersService {
   }
 
   async restoreUser(id: number): Promise<IStatusResponse> {
-    const user = await this.usersRepository.findOne({
-      where: { id, deletedAt: Not(IsNull()) }
-    });
+    const user = await this.usersRepository.createQueryBuilder('user')
+      .withDeleted()
+      .where('user.id = :id', { id })
+      .where('user.deletedAt IS NOT NULL')
+      .getOne();
 
     if (!user) {
       throw new NotFoundException('Deleted user not found');
