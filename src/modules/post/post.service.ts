@@ -19,10 +19,14 @@ export class PostService {
   ) { }
 
   async findOne(postId: number): Promise<PostEntity> {
-    const post = await this.postRepository.findOne({
-      where: { id: postId },
-      relations: ['author', "likes", "likes.user"],
-    });
+    const post = await this.postRepository.createQueryBuilder('post')
+      .leftJoinAndSelect('post.author', 'author')
+      .leftJoinAndSelect('post.likes', 'likes')
+      .leftJoinAndSelect('likes.user', 'likeUser')
+      .loadRelationCountAndMap('post.commentCount', 'post.comments')
+      .where('post.id = :postId', { postId })
+      .andWhere('post.deletedAt IS NULL')
+      .getOne();
 
     if (!post) {
       throw new NotFoundException('Post not found');
