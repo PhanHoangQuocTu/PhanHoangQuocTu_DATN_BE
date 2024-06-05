@@ -16,6 +16,8 @@ import { MailModule } from './mail/mail.module';
 import { PostModule } from './modules/post/post.module';
 import { CommentModule } from './modules/comment/comment.module';
 import { LikesModule } from './modules/likes/likes.module';
+import { ChatGateway } from './gateways/chat.gateway';
+import { MessagesModule } from './modules/messages/messages.module';
 
 @Module({
   imports: [
@@ -34,9 +36,10 @@ import { LikesModule } from './modules/likes/likes.module';
     PostModule,
     CommentModule,
     LikesModule,
+    MessagesModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [ChatGateway],
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {

@@ -6,7 +6,7 @@ export type MonthlyRevenueParamsDto = {
 
 export type MonthlyRevenueResult = {
     month: string;
-    totalRevenue: number;
+    revenue: number;
 };
 
 export type MonthlyRevenueMeta = {

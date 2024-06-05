@@ -395,22 +395,31 @@ export class OrdersService {
   }
 
   async getRevenue(): Promise<MonthlyRevenueResponse> {
-    const startDate = moment().subtract(15, 'days').startOf('day').toDate();
+    const startDate = moment().subtract(15, 'days').startOf('day');
+    const endDate = moment().startOf('day');
 
     const deliveredOrdersRaw = await this.orderRepository
       .createQueryBuilder('order')
       .select([
         "TO_CHAR(order.deliveredAt, 'YYYY-MM-DD') AS date",
-        'orderProduct.product_unit_price',
-        'orderProduct.discount',
-        'orderProduct.product_quantity'
+        'SUM(orderProduct.product_unit_price * orderProduct.product_quantity - orderProduct.discount) AS revenue'
       ])
       .leftJoin('order.products', 'orderProduct')
       .where('order.status = :status', { status: 'delivered' })
-      .andWhere('order.deliveredAt >= :startDate', { startDate })
+      .andWhere('order.deliveredAt >= :startDate', { startDate: startDate.toDate() })
+      .groupBy('date')
       .getRawMany();
 
-    const dailyRevenueData = await this.calculateDailyRevenue(deliveredOrdersRaw);
+    const revenueMap = new Map(deliveredOrdersRaw.map(item => [item.date, parseFloat(item.revenue)]));
+
+    const dailyRevenueData = [];
+    for (let m = moment(startDate); m.diff(endDate, 'days') <= 0; m.add(1, 'days')) {
+      const dateStr = m.format('YYYY-MM-DD');
+      dailyRevenueData.push({
+        date: dateStr,
+        revenue: revenueMap.get(dateStr) || 0
+      });
+    }
 
     return {
       data: dailyRevenueData,
