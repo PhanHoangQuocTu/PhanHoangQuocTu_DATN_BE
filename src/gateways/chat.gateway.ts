@@ -31,4 +31,19 @@ export class ChatGateway {
     // Emit the saved message back to all clients in the room
     this.server.to('CommonRoom').emit('receiveMessage', message);
   }
+
+  @SubscribeMessage('deleteMessage')
+  async handleDeleteMessage(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { messageId: number }
+  ): Promise<void> {
+    await this.messageService.softDeleteMessage(data.messageId);
+
+    // Option 1: Emit an event to update the deleted message for all clients
+    this.server.to('CommonRoom').emit('messageDeleted', { messageId: data.messageId });
+
+    // Option 2: Send all messages again (not recommended due to inefficiency)
+    // const messages = await this.messageService.getAllMessages();
+    // this.server.to('CommonRoom').emit('previousMessages', messages);
+  }
 }

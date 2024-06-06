@@ -22,7 +22,14 @@ export class MessageService {
     return message;
   }
 
+  async softDeleteMessage(messageId: number): Promise<void> {
+    await this.messageRepository.softDelete({ id: messageId });
+  }
+
   async getAllMessages(): Promise<any[]> {
-    return this.messageRepository.find();
+    return this.messageRepository.createQueryBuilder('message')
+      .leftJoinAndSelect('message.sender', 'sender')
+      .withDeleted()
+      .getMany();
   }
 }

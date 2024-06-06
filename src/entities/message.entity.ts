@@ -1,5 +1,5 @@
 import { UserEntity } from "src/entities/user.entity";
-import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, CreateDateColumn, DeleteDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity({ name: "messages" })
 export class MessageEntity {
@@ -17,4 +17,7 @@ export class MessageEntity {
 
     @CreateDateColumn()
     createdAt: Date;
+
+    @DeleteDateColumn()
+    deletedAt?: Date;
 }
