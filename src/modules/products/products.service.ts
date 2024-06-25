@@ -142,6 +142,18 @@ export class ProductsService {
       product.category = category;
     }
 
+    if (updateProductDto.authorId) {
+      const author = await this.authorsService.findOne(+updateProductDto.authorId);
+
+      product.author = author;
+    }
+
+    if (updateProductDto.publisherId) {
+      const publisher = await this.publisherService.findOne(+updateProductDto.publisherId);
+
+      product.publisher = publisher;
+    }
+
     return await this.productsRepository.save(product);
   }
 

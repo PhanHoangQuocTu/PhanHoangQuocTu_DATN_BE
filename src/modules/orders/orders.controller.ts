@@ -15,6 +15,7 @@ import { MonthlyRevenueParamsDto } from './dto/monthly-revenue-params.dto';
 import { Request } from 'express';
 import { CreateVnpayDto } from './dto/create-vnpay.dto';
 import { VnpayReturnParams } from './dto/vnpay_return-params.dto';
+import { OrderStatus } from 'src/utils/common/order-status.enum';
 
 @ApiTags('Order')
 @Controller('orders')
@@ -66,6 +67,7 @@ export class OrdersController {
 
   @ApiQuery({ name: 'limit', type: Number, required: false },)
   @ApiQuery({ name: 'page', type: Number, required: false })
+  @ApiQuery({ name: 'status', enum: OrderStatus, required: false }) 
   @ApiBearerAuth('JWT-auth')
   @UseGuards(AuthenticationGuard, AuthorizeGuard([Roles.ADMIN, Roles.USER]))
   @Get('/user/me')

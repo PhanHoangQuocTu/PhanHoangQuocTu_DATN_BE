@@ -311,7 +311,12 @@ export class OrdersService {
       .leftJoinAndSelect('order.products', 'orderProducts')
       .leftJoinAndSelect('orderProducts.product', 'product')
       .where('user.id = :userId', { userId })
-      .orderBy('order.orderAt', 'DESC');
+
+    if (query.status) {
+      queryBuilder.andWhere('order.status = :status', { status: query.status });
+    }
+
+    queryBuilder.orderBy('order.orderAt', 'DESC');
 
     const page = query?.page > 0 ? query.page : 1;
     const limit = query?.limit > 0 ? query.limit : 10;
