@@ -186,6 +186,12 @@ export class OrdersService {
     }
 
     if (updateOrderStatusDto.status === OrderStatus.SHIPPED) {
+      for (const orderProduct of order.products) {
+        const product = await this.productService.findOne(orderProduct.product.id);
+        if (product.stock < orderProduct.product_quantity) {
+          throw new BadRequestException(`Product ${product.title} does not have enough stock`);
+        }
+      }
       order.shippedAt = new Date();
     }
 
