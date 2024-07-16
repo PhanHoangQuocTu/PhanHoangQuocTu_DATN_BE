@@ -41,7 +41,7 @@ export class UserEntity {
     password: string;
 
     @Column({ type: "enum", enum: Roles, array: true, default: [Roles.USER] })
-    roles: Roles[]
+    roles: Roles[];
 
     @CreateDateColumn()
     createdAt: Timestamp;
@@ -56,37 +56,37 @@ export class UserEntity {
     isActice: boolean
 
     @Column({ nullable: true })
-    verifyCode: string
+    verifyCode: string;
 
     @OneToMany(() => CategoryEntity, (category) => category.addedBy)
-    categories: CategoryEntity[]
+    categories: CategoryEntity[];
 
     @OneToMany(() => AuthorEntity, (author) => author.addedBy)
-    authors: AuthorEntity[]
+    authors: AuthorEntity[];
 
     @OneToMany(() => PublisherEntity, (publisher) => publisher.addedBy)
-    publishers: PublisherEntity[]
+    publishers: PublisherEntity[];
 
     @OneToMany(() => ProductEntity, (product) => product.addedBy)
-    products: ProductEntity[]
+    products: ProductEntity[];
 
     @OneToMany(() => ReviewEntity, (review) => review.user)
-    reviews: ReviewEntity[]
+    reviews: ReviewEntity[];
 
     @OneToMany(() => OrderEntity, (order) => order.updatedBy)
-    ordersUpdateBy: OrderEntity[]
+    ordersUpdateBy: OrderEntity[];
 
     @OneToMany(() => OrderEntity, (order) => order.user)
-    orders: OrderEntity[]
+    orders: OrderEntity[];
 
     @OneToMany(() => CartEntity, (cart) => cart.user)
-    carts: CartEntity[]
+    carts: CartEntity[];
 
     @OneToMany(() => PostEntity, post => post.author)
     posts: PostEntity[];
 
     @OneToMany(() => CommentEntity, comment => comment.author)
-    comments: CommentEntity[];
+    comments: CommentEntity[];  
 
     @OneToMany(() => LikeEntity, like => like.user)
     likes: LikeEntity[];

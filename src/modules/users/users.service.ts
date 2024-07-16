@@ -130,11 +130,11 @@ export class UsersService {
 
     if (query.search) {
       const searchQuery = `%${query.search.toLowerCase()}%`;
-      queryBuilder.where('(LOWER(user.firstName) LIKE :search OR LOWER(user.lastName) LIKE :search OR LOWER(user.email) LIKE :search)', { search: searchQuery });
+      queryBuilder.andWhere('(LOWER(user.firstName) LIKE :search OR LOWER(user.lastName) LIKE :search OR LOWER(user.email) LIKE :search)', { search: searchQuery });
     }
 
     if (query.isActive !== undefined) {
-      queryBuilder.andWhere('user.isActive = :isActive', { isActive: query.isActive });
+      queryBuilder.andWhere('user.isActice = :isActice', { isActice: query.isActive });
     }
 
     queryBuilder.skip(offset).take(limit);
@@ -154,6 +154,7 @@ export class UsersService {
       },
     };
   }
+
 
   async findOne(id: number): Promise<UserEntity> {
     const user = await this.usersRepository.createQueryBuilder('user')
